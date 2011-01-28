@@ -53,14 +53,9 @@ hamming
 
         ; is it correctable?
         cmp r7, #0
-        bne crct
+        beq failure
 
-        mov r0, #-1
-
-done    ldmfd r13!, {r1-r12, r14}
-        bx lr      ; Return to the C program    
-
-crct    sub r5, r5, #1          ; correct the error
+        sub r5, r5, #1          ; correct the error
         eor r0, r0, #1, lsl r5
         bic r1, r0, #0xfb
         bic r2, r0, #0xef
@@ -70,6 +65,11 @@ recon   mov r0, r1, lsr #2      ; reconstruct
         add r0, r0, r2, lsr #3
         add r0, r0, r3, lsl #3
         add r0, r0, r5, lsl #3
+
+done    ldmfd r13!, {r1-r12, r14}
+        bx lr      ; Return to the C program    
+
+failure mov r0, #-1
         b done
 
 div
