@@ -91,7 +91,7 @@ cloop   sub r3, r3, r1 ; remainder = remainder - divisor; cloop is the counter l
         blt rless
         mov r2, r2, LSL #1 ; left shift quotient
         add r2, r2, #1 ; lsb = 1
-shiftd  mov r1, r1, LSR #1 ; right shift divisor, msb = 0
+shftd   mov r1, r1, LSR #1 ; right shift divisor, msb = 0
 
         cmp r4, #0 ; counter > 0
         bgt decount
@@ -101,7 +101,7 @@ shiftd  mov r1, r1, LSR #1 ; right shift divisor, msb = 0
         ldmfd r13!, {r1-r12, r14}
         bx lr      ; Return to the C program    
 
-decount sub r4, r4, #1 ; decrement counter
+dcnt    sub r4, r4, #1 ; decrement counter
         b cloop
 
 rless   add r3, r3, r1 ; remainder = remainder + divisor
