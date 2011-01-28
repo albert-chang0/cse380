@@ -53,7 +53,7 @@ hamming
 
         ; is it correctable?
         cmp r7, #0
-        beq failure
+        beq exf
 
         sub r5, r5, #1          ; correct the error
         eor r0, r0, #1, lsl r5
@@ -69,7 +69,7 @@ recon   mov r0, r1, lsr #2      ; reconstruct
 done    ldmfd r13!, {r1-r12, r14}
         bx lr      ; Return to the C program    
 
-failure mov r0, #-1
+exf     mov r0, #-1 ; EXIT_FAILURE
         b done
 
 div
