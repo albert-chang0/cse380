@@ -13,10 +13,16 @@ hamming
         ; r6 - temp
         ; r7 - correctable boolean
 
+        ; counts the correction parity (8th bit)
         bic r7, r0, #0x7f
         mov r7, r7, lsr #7
 
-        ; first isolate bits
+        ; isolate each bit
+        ; while we're at it, count the number of 1s and ``add'' it to r7.
+        ; since we only care about whether or not it is odd, we simply flip it
+        ; every time a 1 is encountered.
+        ; since only a 1s are counted, flipping is accomplished by xor
+        ; (eor in arm asm).
         bic r1, r0, #0xfb ; clear all bits besides the 3rd one
         eor r7, r7, r1, lsr #2
         bic r2, r0, #0xef ; clear all bits besides the 5th one
@@ -27,6 +33,12 @@ hamming
         eor r7, r7, r4, lsr #6
 
         ; boolean operations
+        ; the algorithm is the same for all parity bits.
+        ; first the parity bit is isolated r6 isn't used for the first one
+        ; because r5 will be emptied with the first checksum.
+        ; then we simply ``add'' the bits that are to be checked by the
+        ; checksum. Just as with r7, since we only care about whether or not
+        ; it is odd, we can use xor.
         ; calculate checksum with the first parity bit
         bic r5, r0, #0xfe
         eor r7, r7, r5
@@ -48,6 +60,11 @@ hamming
         eor r6, r6, r4, lsr #3
         add r5, r5, r6, lsr #1
 
+        ; if the checksum is valid (all checksums == r5 = 0)
+        ; the choice in these branches minimizes branching instructions and
+        ; allow for the lengthier code to keep the pipeline full.
+        ; setting r0 to -1 is a single instruction that doesn't need to utilize
+        ; the pipeline.
         cmp r5, #0
         beq recon
 
@@ -55,8 +72,15 @@ hamming
         cmp r7, #0
         beq exf
 
+        ; error correction is placed right before reconstruction, because there
+        ; are two times where it may reconstruct the bits:
+        ;     1. r5 = 0
+        ;     2. there's a single error
+        ; xor the original hamming code with 0 everywhere except the bit that
+        ; needs to be corrected (1 at the bit that needs to be corrected)
+        ; compliments that bit
         sub r5, r5, #1          ; correct the error
-        mov r6, #1
+        mov r6, #1              ; arm asm doesn't allow an immediate to be shifted, otherwise this could've been skipped
         eor r0, r0, r6, lsl r5
         bic r1, r0, #0xfb
         bic r2, r0, #0xef
@@ -70,7 +94,7 @@ recon   mov r0, r1, lsr #2      ; reconstruct
 done    ldmfd r13!, {r1-r12, r14}
         bx lr      ; Return to the C program    
 
-exf     mov r0, #-1 ; EXIT_FAILURE
+exf     mov r0, #-1 ; return(EXIT_FAILURE);
         b done
 
 div
