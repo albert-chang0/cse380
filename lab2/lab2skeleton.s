@@ -132,7 +132,7 @@ cloop   sub r3, r3, r1 ; remainder = remainder - divisor; cloop is the counter l
 shftd   mov r1, r1, lsr #1 ; right shift divisor, msb = 0
 
         cmp r4, #0 ; counter > 0
-        ble exit
+        ble exit   ; branch when counter <= 0 instead to reduce number of branches
         sub r4, r4, #1 ; decrement counter
         b cloop
 
