@@ -18,22 +18,10 @@ hamming
         bgt exf
 
         ; counts the correction parity (8th bit)
-        bic r7, r0, #0x7f
+        and r7, r0, #0x80
         mov r7, r7, lsr #7
 
         ; isolate each bit
-        ; While we're at it, count the number of 1s and ``add'' it to r7.
-        ; Since we only care about whether or not it is odd, we simply flip it
-        ; every time a 1 is encountered. Actually adding the bits caused an
-        ; extra line of code to be needed to isolate the odd bit for each
-        ; checksum.
-        ; Since only a 1s are counted, flipping is accomplished by xor
-        ; (eor in arm asm).
-        ; Originally bic was used to clear bits. Even though with the way bic
-        ; was implemented was convenient, it meant it could only be used for
-        ; 8-bit hamming codes. Longer hamming codes, would mean those lines
-        ; would have to be edited. Using and allows for slightly more
-        ; portability without any drawbacks.
         and r1, r0, #0x4        ; clear all bits except the 3rd one
         eor r7, r7, r1, lsr #2
         and r2, r0, #0x10       ; clear all bits except the 5th one
@@ -44,38 +32,27 @@ hamming
         eor r7, r7, r4, lsr #6
 
         ; boolean operations
-        ; The algorithm is the same for all parity bits.
-        ; First the parity bit is isolated r6 isn't used for the first one
-        ; because r5 will be emptied with the first checksum.
-        ; then we simply ``add'' the bits that are to be checked by the
-        ; checksum. Just as with r7, since we only care about whether or not
-        ; it is odd, we can use xor.
         ; calculate checksum with the first parity bit
-        bic r5, r0, #0xfe
+        and r5, r0, #2
         eor r7, r7, r5
         eor r5, r5, r1, lsr #2
         eor r5, r5, r2, lsr #4
         eor r5, r5, r4, lsr #6
         ; calculate checksum with the second parity bit
-        bic r6, r0, #0xfd
+        and r6, r0, #4
         eor r7, r7, r6, lsr #1
         eor r6, r6, r1, lsr #1
         eor r6, r6, r3, lsr #4
         eor r6, r6, r4, lsr #5
         add r5, r5, r6
         ; calculate checksum with the third parity bit
-        bic r6, r0, #0xf7
+        and r6, r0, #8
         eor r7, r7, r6, lsr #3
         eor r6, r6, r2, lsr #1
         eor r6, r6, r3, lsr #2
         eor r6, r6, r4, lsr #3
         add r5, r5, r6, lsr #1
 
-        ; if the checksum is valid (all checksums == r5 = 0)
-        ; The choice in these branches minimizes branching instructions and
-        ; allow for the lengthier code to keep the pipeline full.
-        ; setting r0 to -1 is a single instruction that doesn't need to utilize
-        ; the pipeline.
         cmp r5, #0
         beq recon
 
@@ -83,19 +60,10 @@ hamming
         cmp r7, #0
         beq exf
 
-        ; error correction is placed right before reconstruction, because there
-        ; are two times where it may reconstruct the bits:
-        ;     1. r5 = 0
-        ;     2. there's a single error
-        ; xor the original hamming code with 0 everywhere except the bit that
-        ; needs to be corrected (1 at the bit that needs to be corrected)
-        ; The longer the code needs to be executed, the more we should keep the
-        ; pipeline intact
-        ; compliments that bit
         sub r5, r5, #1          ; correct the error
         mov r6, #1              ; arm asm doesn't allow an immediate to be shifted, otherwise this could've been skipped
         eor r0, r0, r6, lsl r5
-        and r1, r0, #0x4
+        and r1, r0, #0x4        ; re-extract bits, copied + pasted from beginning
         and r2, r0, #0x10
         and r3, r0, #0x20
         and r4, r0, #0x40
@@ -142,7 +110,7 @@ exit    mov r0, r2
         bx lr      ; Return to the C program    
 
 rless   add r3, r3, r1 ; remainder = remainder + divisor
-        mov r2, r2, LSL #1 ; left shift quotient, lsb = 0
+        mov r2, r2, lsl #1 ; left shift quotient, lsb = 0
         b shftd
 
         end
