@@ -26,6 +26,7 @@ hamming
         mov r7, r7, lsr #7
 
         ; isolate each bit
+        ; at the same time, count 1s
         and r1, r0, #0x4        ; clear all bits except the 3rd one
         eor r7, r7, r1, lsr #2
         and r2, r0, #0x10       ; clear all bits except the 5th one
@@ -37,20 +38,20 @@ hamming
 
         ; boolean operations
         ; calculate checksum with the first parity bit
-        and r5, r0, #1
+        and r5, r0, #1 ; isolate parity bit
         eor r7, r7, r5
         eor r5, r5, r1, lsr #2
         eor r5, r5, r2, lsr #4
         eor r5, r5, r4, lsr #6
         ; calculate checksum with the second parity bit
-        and r6, r0, #2
+        and r6, r0, #2 ; isolate parity bit
         eor r7, r7, r6, lsr #1
         eor r6, r6, r1, lsr #1
         eor r6, r6, r3, lsr #4
         eor r6, r6, r4, lsr #5
         add r5, r5, r6
         ; calculate checksum with the third parity bit
-        and r6, r0, #8
+        and r6, r0, #8 ; isolate parity bit
         eor r7, r7, r6, lsr #3
         eor r6, r6, r2, lsr #1
         eor r6, r6, r3, lsr #2
