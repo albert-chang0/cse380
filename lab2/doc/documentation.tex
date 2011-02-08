@@ -3,7 +3,6 @@
 \usepackage{listings}
 \usepackage{color}
 \usepackage{tikz}
-\usepackage{algorithmic}
 
 \setlength{\headheight}{0in}
 \setlength{\marginparsep}{0in}
@@ -21,7 +20,7 @@
 \setlength{\parskip}{10pt} %change this to match font size
 
 \pagestyle{empty}
-\definecolor{gray}{gray}{0.8}
+\definecolor{gray}{gray}{0.75}
 \usetikzlibrary{shapes,arrows,calc}
 \lstset{numbers=left,backgroundcolor=\color{gray},frame=single}
 
@@ -30,14 +29,13 @@
 \tikzstyle{block} = [draw, rectangle, text centered, minimum height=2em]
 \tikzstyle{mlblock} = [draw, rectangle, text width=10em, text centered, minimum height=2em]
 \tikzstyle{decision} = [draw, diamond, text width=4.5em, text centered, node distance=3cm, inner sep=0pt]
-%\tikzstyle{cloud} = [draw, ellipse, node distance=3cm, minimum height = 2em]
 \tikzstyle{cloud} = [draw, rectangle, text centered, rounded corners, minimum height=2em]
 
 \begin{document}
-    Albert Chang\\
-    Nipun Chopra\\
+    Albert Chang and Nipun Chopra\\
     CSE-380 A6\\
     University at Buffalo\\
+    Kris Schindler, Ph.D.\\
     February 08, 2011\\
     \textit{Lab 2 Documentation}
 
@@ -109,6 +107,7 @@
             \path[line] (checksum3) -- (address);
             \draw (address) |- (branch2) -| (eparity);
             \draw (large) -- node [near start] {yes} +(7,0) -- (cont2);
+            \draw (small) -- node [near start] {yes} +(7,0);
             \path[line, dashed] (cont2) -- +(0,-1.375);
             \path[line, dashed] (branch2) -- (cont);
         \end{tikzpicture}
