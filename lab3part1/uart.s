@@ -1,17 +1,35 @@
-	AREA	Serial, CODE, READWRITE	
-	EXPORT lab3
-	
-	U0LSR EQU 0x14			; UART0 Line Status Register
+    area    serial, code, readwrite 
+    export lab3
+    
+    u0lsr equ 0x14          ; UART0 Line Status Register
 
-; You'll want to define more constants to make your code easier 
-; to read and debug
+    ; You'll want to define more constants to make your code easier 
+    ; to read and debug
 
 
 lab3
-	STMFD SP!,{lr}	; Store register lr on stack
+    stmfd sp!,{lr}  ; Store register lr on stack
 
-; Your code is placed here
+    ; bl read_character
+    ; test code
+    ; mov r0, #65
+    ; bl output_character
 
-	LDMFD SP!, {lr}	; Restore register lr from stack	
-	BX lr
-	END
+    ldmfd sp!, {lr} ; Restore register lr from stack    
+    bx lr
+
+read_character
+    stmfd r13!, {r1-r12, r14}
+    ; stmfd sp!, {lr}
+
+    ldmfd sp!, {lr}
+    bx lr
+
+output_character
+    stmfd r13!, {r1-r12, r14}
+    ; stmfd sp!, {lr}
+
+    ldmfd sp!, {lr}
+    bx lr
+
+    end
