@@ -37,13 +37,13 @@ hamming
 
         ; boolean operations
         ; calculate checksum with the first parity bit
-        and r5, r0, #2
+        and r5, r0, #1
         eor r7, r7, r5
         eor r5, r5, r1, lsr #2
         eor r5, r5, r2, lsr #4
         eor r5, r5, r4, lsr #6
         ; calculate checksum with the second parity bit
-        and r6, r0, #4
+        and r6, r0, #2
         eor r7, r7, r6, lsr #1
         eor r6, r6, r1, lsr #1
         eor r6, r6, r3, lsr #4
