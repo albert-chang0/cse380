@@ -1,0 +1,189 @@
+\documentclass[letterpaper,10pt]{article}
+
+\usepackage{listings}
+\usepackage{color}
+\usepackage{tikz}
+\usepackage{algorithmic}
+
+\setlength{\headheight}{0in}
+\setlength{\marginparsep}{0in}
+\setlength{\footskip}{0in}
+\setlength{\headsep}{0in}
+\setlength{\marginparwidth}{0in}
+\setlength{\marginparpush}{0in} \setlength{\voffset}{0in} \setlength{\hoffset}{-1in}
+\setlength{\voffset}{-1in}
+\setlength{\oddsidemargin}{0.75in}
+\setlength{\evensidemargin}{0.75in}
+\setlength{\topmargin}{0.75in}
+\setlength{\textheight}{9.5in}
+\setlength{\textwidth}{7in}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{10pt} %change this to match font size
+
+\pagestyle{empty}
+\definecolor{gray}{gray}{0.8}
+\usetikzlibrary{shapes,arrows,calc}
+\lstset{numbers=left,backgroundcolor=\color{gray},frame=single}
+
+% define block styles
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{block} = [draw, rectangle, text centered, minimum height=2em]
+\tikzstyle{mlblock} = [draw, rectangle, text width=10em, text centered, minimum height=2em]
+\tikzstyle{decision} = [draw, diamond, text width=4.5em, text centered, node distance=3cm, inner sep=0pt]
+%\tikzstyle{cloud} = [draw, ellipse, node distance=3cm, minimum height = 2em]
+\tikzstyle{cloud} = [draw, rectangle, text centered, rounded corners, minimum height=2em]
+
+\begin{document}
+    Albert Chang\\
+    Nipun Chopra\\
+    CSE-380 A6\\
+    University at Buffalo\\
+    February 08, 2011\\
+    \textit{Lab 2 Documentation}
+
+    The objective of Lab 2 was to write a two routines called \textit{hamming}
+    and \textit{div}. The \textit{hamming} routine receives an 8-bit hamming
+    code and returns the corrected 4-bit data. Register r0 is used both to
+    pass the 8-bit hamming code and to return the 4-bit data. The hamming
+    code had been studied before in a previous class. With 8 bits, there would
+    be 4 parity bits. The first checksum is calculated with by taking the
+    sum of bits included by one bit, skipping a bit, taking another bit,
+    skipping another, \textit{et cetera} until the end of the bitstream. The
+    second checksum bit is calculated by taking two bits, skipping two.
+    Likewise the third is takes four bits, skips four, although after it takes
+    the four bits, there's nothing left in the bitstream. The checksum combined
+    creates the address of the bit that needs to be flipped. Which means one
+    error is known, and at that point corrected. However, at that point, if
+    it makes the total parity odd, then there is another error, but it cannot
+    be fixed. Contrarily, if fixing that bit makes the total parity even, then
+    there are no more errors. The following flowchart displays how the
+    algorithm was realized.
+
+    Immediately, it was realized that there were multiple ways of doing each
+    step of the process. For example, a \textit{bic} command could be used
+    instead of \textit{and}. Or \textit{add} could be used instead of
+    \textit{eor}. What ultimately decided which commands would be used came
+    down to how fast each one worked---Keil displays the time it takes to
+    execute the code---or flexibility and convenience. For example, by
+    using an \textit{add} command, you would also need yet another command to
+    extract the odd bit. With \textit{eor}, those lines could be eliminated.
+    With \textit{bic} we were limited to the 8 bits we were working on---
+    the rest would be 0s anyway---but if we ever modify the code, those
+    \textit{bic} lines would have to be modified as well. The \textit{and}
+    command accomplished the same thing, with the same execution time, but if
+    we expanded to more than 8 bits, those lines wouldn't have to be modified.
+    Using a revision control system, Git, it was easy to switch between
+    different versions of code quickly without disrupting development of the
+    main branch.
+
+    \begin{center}
+        \begin{tikzpicture}[node distance = 1.5cm, auto]
+            \node[cloud] (origin) {Start};
+            \node[decision, below of=origin] (large) {hamming $>$ 8-bit ?};
+            \node[decision, below of=large] (small) {hamming $<$ 0 ?};
+            \node[below of=small, node distance = 2cm, inner sep = 0pt] (branch1) {};
+            \node[below of=branch1] (empty1) {};
+            \node[block, left of=empty1, node distance = 3cm] (eparity) {Count 1s in hamming code};
+            \node[block, right of=empty1, node distance = 3cm] (isolate) {Isolate Data Bits};
+            \node[block, below of=isolate] (parity1) {Isolate First Parity Bit};
+            \node[block, below of=parity1] (checksum1) {Calculate First Checksum};
+            \node[block, below of=checksum1] (parity2) {Isolate Second Parity Bit};
+            \node[block, below of=parity2] (checksum2) {Calculate Second Checksum};
+            \node[block, below of=checksum2] (parity3) {Isolate Third Parity Bit};
+            \node[block, below of=parity3] (checksum3) {Calculate Third Parity Bit};
+            \node[block, below of=checksum3] (address) {Create Error Address};
+            \node[left of = address, node distance = 3cm] (empty2) {};
+            \node[below of = empty2, inner sep = 0pt] (branch2) {};
+            \node[below of=branch2] (cont) {};
+            \node[right of=branch2, node distance=7cm, inner sep = 0] (cont2) {};
+            \path[line] (origin) -- (large);
+            \path[line] (large) -- node [near start] {no} (small);
+            \path[line] (small) -- node [near start] {no} (branch1);
+            \draw (eparity) |- (branch1) -| (isolate);
+            \path[line] (isolate) -- (parity1);
+            \path[line] (parity1) -- (checksum1);
+            \path[line] (checksum1) -- (parity2);
+            \path[line] (parity2) -- (checksum2);
+            \path[line] (checksum2) -- (parity3);
+            \path[line] (parity3) -- (checksum3);
+            \path[line] (checksum3) -- (address);
+            \draw (address) |- (branch2) -| (eparity);
+            \draw (large) -- node [near start] {yes} +(7,0) -- (cont2);
+            \path[line, dashed] (cont2) -- +(0,-1.375);
+            \path[line, dashed] (branch2) -- (cont);
+        \end{tikzpicture}
+    \end{center}
+
+    \begin{center}
+        \begin{tikzpicture}[node distance = 1.5cm, auto]
+            \node (cont) {};
+            \node[decision, below of=cont] (errors) {Address $>$ 0 ?};
+            \node[decision, below of=errors, node distance = 3cm] (correctable) {Parity of Total Is Even?};
+            \node[block, below of=correctable, node distance = 3cm] (fix) {Correct Bit at Address};
+            \node[block, right of=correctable, node distance = 7cm] (failure) {Register r0 = -1};
+            \node[block, below of=fix] (extract) {Extract Data Bits};
+            \node[cloud, below of=extract] (stop) {Stop};
+            \path[line, dashed] (cont) -- (errors);
+            \path[line, dashed] (cont) + (7,0) -- (failure);
+            \path[line] (errors) -- node [near start] {yes} (correctable);
+            \path[line] (correctable) -- node [near start] {yes} (fix);
+            \path[line] (errors) --  node [near start] {no} +(-4,0) |- (extract);
+            \path[line] (correctable) -- node [near start] {no} (failure);
+            \path[line] (failure) |- (stop);
+            \path[line] (fix) -- (extract);
+            \path[line] (extract) -- (stop);
+        \end{tikzpicture}
+    \end{center}
+
+    The \textit{div} routine returns the quotient of the value passed into
+    r0 (dividend) divided by the value passed in r1 (divisor). Quotient is
+    returned in r0. All values are unsigned integers. This relies on the flow
+    chart provided during lecture. Some minor changes have been made to the
+    flow to optimize speed, as is shown by the following flowchart.
+
+    \begin{center}
+        \begin{tikzpicture}[node distance = 1.5cm, auto]
+            \node[cloud] (origin) {Start};
+            \node[block, below of=origin] (initq) {Initialize Quotient to 0};
+            \node[block, below of=initq] (initr) {Initialize Remainder};
+            \node[block, below of=initr] (initc) {Initialize Counter to 16};
+            \node[block, below of=initc] (lsldivor) {Logical Shift Left Divisor 16 Places};
+            \node[block, below of=lsldivor] (subr) {Remainder := Remainder - Divisor};
+            \node[decision, below of=subr] (rcheck) {Is\\Remainder $<$ 0 ?};
+            \node[block, right of=rcheck, node distance = 7cm] (addr) {Remainder := Remainder + Divisor};
+            \node[mlblock, below of=addr] (lsq0) {Logical Shift Quotient\\LSB = 0};
+            \node[mlblock, below of=rcheck, node distance = 3cm] (lsq1) {Logical Shift Quotient\\LSB = 1};
+            \node[mlblock, below of=lsq1] (msb) {Right Shift Divisor\\MSB=0};
+            \node[decision, below of=msb] (ccheck) {Is Counter $\leq$ 1 ?};
+            \node[block, left of=ccheck, node distance = 5cm] (dcount) {Decrement Counter};
+            \node[cloud, below of=ccheck, node distance = 3cm] (stop) {Stop};
+            \path[line] (origin) -- (initq);
+            \path[line] (initq) -- (initr);
+            \path[line] (initr) -- (initc);
+            \path[line] (initc) -- (lsldivor);
+            \path[line] (lsldivor) -- (subr);
+            \path[line] (subr) -- (rcheck);
+            \path[line] (rcheck) -- node [near start] {yes} (addr);
+            \path[line] (addr) -- (lsq0);
+            \path[line] (rcheck) -- node [near start] {no} (lsq1);
+            \path[line] (lsq0) |- (msb);
+            \path[line] (lsq1) -- (msb);
+            \path[line] (msb) -- (ccheck);
+            \path[line] (ccheck) -- node [near start] {yes} (dcount);
+            \path[line] (dcount) |- (subr);
+            \path[line] (ccheck) -- node [near start] {no} (stop);
+        \end{tikzpicture}
+    \end{center}
+    % maybe insert pseudocode
+
+    The day before Albert Chang and Nipun Chopra met, Albert had finished
+    working on the actual code. Both the \textit{hamming} and \textit{div}
+    routines were working. Since the coding aspect was done with, it only made
+    sense that Nipun write up the documentation.
+
+    hamming\_divide\_test\_wrapper.c:
+    \lstinputlisting[language=C]{../hamming_divide_test_wrapper.c}
+
+    hamming\_divide\_routines.s:
+    \lstinputlisting{../hamming_divide_routines.s}
+\end{document}
