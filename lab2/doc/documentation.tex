@@ -35,8 +35,8 @@
     Albert Chang and Nipun Chopra\\
     CSE-380 A6\\
     University at Buffalo\\
-    Kris Schindler, Ph.D.\\
-    February 08, 2011\\
+    Dr. Kris Schindler\\
+    February 10, 2011\\
     \textit{Lab 2 Documentation}
 
     The objective of Lab 2 was to write a two routines called \textit{hamming}
@@ -112,6 +112,7 @@
     \begin{center}
         \begin{tikzpicture}[node distance = 1.5cm, auto]
             \node (cont) {};
+            \node[left of=cont, node distance = 6.25cm] {};
             \node[decision, below of=cont] (errors) {Address $>$ 0 ?};
             \node[decision, below of=errors, node distance = 3cm] (correctable) {Parity of Total Is Even?};
             \node[block, below of=correctable, node distance = 3cm] (fix) {Correct Bit at Address};
