@@ -8,28 +8,26 @@
 
 
 lab3
-    stmfd sp!,{lr}  ; Store register lr on stack
+        stmfd sp!,{lr}  ; Store register lr on stack
 
-    ; bl read_character
-    ; test code
-    ; mov r0, #65
-    ; bl output_character
+        ; bl read_character
+        ; test code
+        mov r0, #65
+        bl output_character
 
-    ldmfd sp!, {lr} ; Restore register lr from stack    
-    bx lr
+        ldmfd sp!, {lr} ; Restore register lr from stack    
+        bx lr
 
 read_character
-    stmfd r13!, {r1-r12, r14}
-    ; stmfd sp!, {lr}
+        stmfd sp!, {r1-r12, lr}
 
-    ldmfd sp!, {lr}
-    bx lr
+        ldmfd sp!, {r1-r12, lr}
+        bx lr
 
 output_character
-    stmfd r13!, {r1-r12, r14}
-    ; stmfd sp!, {lr}
+        stmfd sp!, {r1-r12, lr}
 
-    ldmfd sp!, {lr}
-    bx lr
+        ldmfd sp!, {r1-r12, lr}
+        bx lr
 
-    end
+        end
