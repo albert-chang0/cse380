@@ -19,10 +19,10 @@ read_character
 
 rpoll   ldr r1, [r2, #u0lsr]    ; load status register
         and r1, r1, #1          ; test RDR in status register
-        cmp r1, #0
+        cmp r1, #0              ; poll until something needs to be read
         beq rpoll
 
-        ldrb r0, [r2]
+        ldrb r0, [r2]           ; read receiver buffer
 
         ldmfd sp!, {r1-r12, lr}
         bx lr
