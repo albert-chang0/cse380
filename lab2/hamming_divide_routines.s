@@ -66,7 +66,7 @@ hamming
         beq exf
 
         sub r5, r5, #1          ; correct the error
-        mov r6, #1              ; arm asm doesn't allow an immediate to be shifted, otherwise this could've been skipped
+        mov r6, #1              ; arm asm doesn't allow an immediate to be shifted
         eor r0, r0, r6, lsl r5
         and r1, r0, #0x4        ; re-extract bits, copied + pasted from beginning
         and r2, r0, #0x10
@@ -105,7 +105,7 @@ cloop   sub r3, r3, r1 ; remainder = remainder - divisor; cloop is the counter l
 shftd   mov r1, r1, lsr #1 ; right shift divisor, msb = 0
 
         cmp r4, #0 ; counter > 0
-        ble exit   ; branch when counter <= 0 instead to reduce number of branching instructions
+        ble exit   ; counter <= 0 instead reduces number of branching instructions
         sub r4, r4, #1 ; decrement counter
         b cloop
 
