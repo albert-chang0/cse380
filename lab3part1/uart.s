@@ -2,16 +2,11 @@
     export lab3
     
     u0lsr equ 0x14          ; UART0 line status register
-    u0tr equ 0xe000c000    ; UART0 receive/tramsit hold register
-
-    ; You'll want to define more constants to make your code easier 
-    ; to read and debug
-
 
 lab3
         stmfd sp!,{lr}  ; Store register lr on stack
 
-        ; bl read_character
+        ;bl read_character
         ; test code
         ;mov r0, #65
         bl output_character
@@ -28,11 +23,14 @@ read_character
 output_character
         stmfd sp!, {r1-r12, lr}
 
-poll    ldr r0  ; load status register
-                ; test THRE in status register
-                ; poll until something is written
+        mov r2, =0xe000c000 ; UART0 base address
 
-                ; something is written: store it to the uart
+poll    ldr r1, [r2, #u0lsr]    ; load status register
+        and r1, r1, #0x20       ; test THRE in status register
+        cmp r1, #0              ; poll until something is written
+        beq poll
+
+        str r0, [r3]    ; write whatever is written to UART register
 
         ldmfd sp!, {r1-r12, lr}
         bx lr
