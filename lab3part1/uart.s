@@ -6,7 +6,8 @@ u0lsr equ 0x14          ; UART0 line status register
 lab3
         stmfd sp!,{lr}  ; Store register lr on stack
 
-        bl read_character
+        ;bl read_character
+        mov r0, #65
         bl output_character
 
         ldmfd sp!, {lr} ; Restore register lr from stack    
