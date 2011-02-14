@@ -9,7 +9,7 @@ void serial_init(void)
 	  	/* Set lower divisor latch for 9,600 baud */
 			*(volatile unsigned *)(0xE000C000) = 120; 
 	  	/* Set upper divisor latch for 9,600 baud */
-			*(volatile unsigned *)(0xE000C004) = 9; 
+			*(volatile unsigned *)(0xE000C004) = 0; 
 	  	/* 8-bit word length, 1 stop bit, no parity,  */
 	  	/* Disable break control                      */
 	  	/* Disable divisor latch access               */
