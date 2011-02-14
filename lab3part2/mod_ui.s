@@ -143,10 +143,36 @@ read_string
 ; r1 modulo r0 (r1 % r0)
 ; The majority of the function is taken from lab 2's division subroutine.
 mod
-        stmfd sp!, {lr}
+        stmfd sp!, {r0-r4, lr}
 
+        ; r0 - divisor
+        ; r1 - dividend
+        ; r2 - quotient
+        ; r3 - remainder
+        ; r4 - counter
+        mov r2, #0 ; initialize quotient to 0
+        mov r3, r1 ; initialize remainder to dividend
+        mov r4, #0x10 ; initialize counter to 16
+        mov r0, r0, lsl #0x10 ; logical left shift divisor 16 places
+cloop   sub r3, r3, r0 ; remainder = remainder - divisor; cloop is the counter loop
+        cmp r3, #0 ; remainder < 0
+        blt rless
+        mov r2, r2, lsl #1 ; left shift quotient
+        add r2, r2, #1 ; lsb = 1
+shftd   mov r0, r0, lsr #1 ; right shift divisor, msb = 0
 
-        ldmfd sp!, {lr}
-        bx lr
+        cmp r4, #0 ; counter > 0
+        ble exit   ; counter <= 0 instead reduces number of branching instructions
+        sub r4, r4, #1 ; decrement counter
+        b cloop
+
+exit    mov r0, r3 ; return remainder instead of quotient
+
+        ldmfd r13!, {r0-r12, r14}
+        bx lr      ; Return to the C program    
+
+rless   add r3, r3, r0 ; remainder = remainder + divisor
+        mov r2, r2, lsl #1 ; left shift quotient, lsb = 0
+        b shftd
 
         end
