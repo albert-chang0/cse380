@@ -18,6 +18,6 @@ void serial_init(void)
 
 int main()
 {	
-   serial_init();
+   /*serial_init();*/
    lab3();
 }
