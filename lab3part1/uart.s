@@ -1,13 +1,21 @@
     area    serial, code, readwrite 
     export lab3
     
+pinsel0 equ 0xe002c000  ; UART0 pin select
+u0base equ 0xe000c000   ; UART0 base address
 u0lsr equ 0x14          ; UART0 line status register
 
 lab3
         stmfd sp!,{lr}  ; Store register lr on stack
 
-        ;bl read_character
-        mov r0, #0x41
+        ; enable UART0
+        ldr r2, =pinsel0
+        ldr r1, [r2]
+        bic r1, r1, #0xf
+        orr r1, r1, #0x5
+        str r1, [r2]
+
+        bl read_character
         bl output_character
 
         ldmfd sp!, {lr} ; Restore register lr from stack    
@@ -16,7 +24,7 @@ lab3
 read_character
         stmfd sp!, {r1, r2, lr}
 
-        ldr r2, =0xe000c000     ; UART0 base address
+        ldr r2, =u0base         ; UART0 base address
 
 rpoll   ldrb r1, [r2, #u0lsr]   ; load status register
         and r1, r1, #1          ; test RDR
@@ -31,7 +39,7 @@ rpoll   ldrb r1, [r2, #u0lsr]   ; load status register
 output_character
         stmfd sp!, {r1, r2, lr}
 
-        ldr r2, =0xe000c000     ; UART0 base address
+        ldr r2, =u0base         ; UART0 base address
 
 tpoll   ldrb r1, [r2, #u0lsr]   ; load status register
         and r1, r1, #0x20       ; test THRE
