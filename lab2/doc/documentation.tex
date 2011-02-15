@@ -32,8 +32,7 @@
 \tikzstyle{cloud} = [draw, rectangle, text centered, rounded corners, minimum height=2em]
 
 \begin{document}
-    Albert Chang and Nipun Chopra\\
-    CSE-380 A6\\
+    Albert Chang and Nipun Chopra\\ CSE-380 A6\\
     University at Buffalo\\
     Dr. Kris Schindler\\
     February 10, 2011\\
@@ -74,62 +73,9 @@
     different versions of code quickly without disrupting development of the
     main branch.
 
-    \begin{center}
-        \begin{tikzpicture}[node distance = 1.5cm, auto]
-            \node[cloud] (origin) {Start};
-            \node[decision, below of=origin] (large) {hamming $>$ 8-bit ?};
-            \node[decision, below of=large] (small) {hamming $<$ 0 ?};
-            \node[below of=small, node distance = 3.5cm] (empty1) {};
-            \node[block, left of=empty1, node distance = 3cm] (eparity) {Count 1s in hamming code};
-            \node[block, right of=empty1, node distance = 3cm] (isolate) {Isolate Data Bits};
-            \node[block, below of=isolate] (parity1) {Isolate First Parity Bit};
-            \node[block, below of=parity1] (checksum1) {Calculate First Checksum};
-            \node[block, below of=checksum1] (parity2) {Isolate Second Parity Bit};
-            \node[block, below of=parity2] (checksum2) {Calculate Second Checksum};
-            \node[block, below of=checksum2] (parity3) {Isolate Third Parity Bit};
-            \node[block, below of=parity3] (checksum3) {Calculate Third Parity Bit};
-            \node[block, below of=checksum3] (address) {Create Error Address};
-            \path[line] (origin) -- (large);
-            \path[line] (large) -- node [near start] {no} (small);
-            \path[line] (small) -- node [near start] {no} +(0,-2);
-            \draw (eparity) |- +(6,1.5) -- (isolate);
-            \path[line] (isolate) -- (parity1);
-            \path[line] (parity1) -- (checksum1);
-            \path[line] (checksum1) -- (parity2);
-            \path[line] (parity2) -- (checksum2);
-            \path[line] (checksum2) -- (parity3);
-            \path[line] (parity3) -- (checksum3);
-            \path[line] (checksum3) -- (address);
-            \draw (address) |- +(-6,-1.5) -- (eparity);
-            \draw (large) -| node [near start] {yes} +(7,-18.5);
-            \draw (small) -- node [near start] {yes} +(7,0);
-            %\path[line, dashed] (cont2) -- +(0,-1.375);
-            \path[line, dashed] (address) +(4, -1.5) node {} -- +(4,-3);
-            \path[line, dashed] (address) +(-3,-1.5) node {} -- +(-3,-3);
-        \end{tikzpicture}
-    \end{center}
+    \input{hamming_flow_1}
 
-    \begin{center}
-        \begin{tikzpicture}[node distance = 1.5cm, auto]
-            \node (cont) {};
-            \node[left of=cont, node distance = 6.25cm] {};
-            \node[decision, below of=cont] (errors) {Address $>$ 0 ?};
-            \node[decision, below of=errors, node distance = 3cm] (correctable) {Parity of Total Is Even?};
-            \node[block, below of=correctable, node distance = 3cm] (fix) {Correct Bit at Address};
-            \node[block, right of=correctable, node distance = 7cm] (failure) {Register r0 = -1};
-            \node[block, below of=fix] (extract) {Extract Data Bits};
-            \node[cloud, below of=extract] (stop) {Stop};
-            \path[line, dashed] (cont) -- (errors);
-            \path[line, dashed] (cont) + (7,0) -- (failure);
-            \path[line] (errors) -- node [near start] {yes} (correctable);
-            \path[line] (correctable) -- node [near start] {yes} (fix);
-            \path[line] (errors) --  node [near start] {no} +(-4,0) |- (extract);
-            \path[line] (correctable) -- node [near start] {no} (failure);
-            \path[line] (failure) |- (stop);
-            \path[line] (fix) -- (extract);
-            \path[line] (extract) -- (stop);
-        \end{tikzpicture}
-    \end{center}
+    \input{hamming_flow_2}
 
     The \textit{div} routine returns the quotient of the value passed into
     r0 (dividend) divided by the value passed in r1 (divisor). Quotient is
@@ -137,39 +83,7 @@
     chart provided during lecture. Some minor changes have been made to the
     flow to optimize speed, as is shown by the following flowchart.
 
-    \begin{center}
-        \begin{tikzpicture}[node distance = 1.5cm, auto]
-            \node[cloud] (origin) {Start};
-            \node[block, below of=origin] (initq) {Initialize Quotient to 0};
-            \node[block, below of=initq] (initr) {Initialize Remainder};
-            \node[block, below of=initr] (initc) {Initialize Counter to 16};
-            \node[block, below of=initc] (lsldivor) {Logical Shift Left Divisor 16 Places};
-            \node[block, below of=lsldivor] (subr) {Remainder := Remainder - Divisor};
-            \node[decision, below of=subr] (rcheck) {Is\\Remainder $<$ 0 ?};
-            \node[block, right of=rcheck, node distance = 7cm] (addr) {Remainder := Remainder + Divisor};
-            \node[mlblock, below of=addr] (lsq0) {Logical Shift Quotient\\LSB = 0};
-            \node[mlblock, below of=rcheck, node distance = 3cm] (lsq1) {Logical Shift Quotient\\LSB = 1};
-            \node[mlblock, below of=lsq1] (msb) {Right Shift Divisor\\MSB=0};
-            \node[decision, below of=msb] (ccheck) {Is Counter $\leq$ 1 ?};
-            \node[block, left of=ccheck, node distance = 5cm] (dcount) {Decrement Counter};
-            \node[cloud, below of=ccheck, node distance = 3cm] (stop) {Stop};
-            \path[line] (origin) -- (initq);
-            \path[line] (initq) -- (initr);
-            \path[line] (initr) -- (initc);
-            \path[line] (initc) -- (lsldivor);
-            \path[line] (lsldivor) -- (subr);
-            \path[line] (subr) -- (rcheck);
-            \path[line] (rcheck) -- node [near start] {yes} (addr);
-            \path[line] (addr) -- (lsq0);
-            \path[line] (rcheck) -- node [near start] {no} (lsq1);
-            \path[line] (lsq0) |- (msb);
-            \path[line] (lsq1) -- (msb);
-            \path[line] (msb) -- (ccheck);
-            \path[line] (ccheck) -- node [near start] {yes} (dcount);
-            \path[line] (dcount) |- (subr);
-            \path[line] (ccheck) -- node [near start] {no} (stop);
-        \end{tikzpicture}
-    \end{center}
+    \input{division_flow}
     % maybe insert pseudocode
 
     The day before Albert Chang and Nipun Chopra met, Albert had finished

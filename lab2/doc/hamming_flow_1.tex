@@ -1,0 +1,34 @@
+\begin{center}
+    \begin{tikzpicture}[node distance = 1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[decision, below of=origin] (large) {hamming $>$ 8-bit ?};
+        \node[decision, below of=large] (small) {hamming $<$ 0 ?};
+        \node[below of=small, node distance = 3.5cm] (empty1) {};
+        \node[block, left of=empty1, node distance = 3cm] (eparity) {Count 1s in hamming code};
+        \node[block, right of=empty1, node distance = 3cm] (isolate) {Isolate Data Bits};
+        \node[block, below of=isolate] (parity1) {Isolate First Parity Bit};
+        \node[block, below of=parity1] (checksum1) {Calculate First Checksum};
+        \node[block, below of=checksum1] (parity2) {Isolate Second Parity Bit};
+        \node[block, below of=parity2] (checksum2) {Calculate Second Checksum};
+        \node[block, below of=checksum2] (parity3) {Isolate Third Parity Bit};
+        \node[block, below of=parity3] (checksum3) {Calculate Third Parity Bit};
+        \node[block, below of=checksum3] (address) {Create Error Address};
+        \path[line] (origin) -- (large);
+        \path[line] (large) -- node [near start] {no} (small);
+        \path[line] (small) -- node [near start] {no} +(0,-2);
+        \draw (eparity) |- +(6,1.5) -- (isolate);
+        \path[line] (isolate) -- (parity1);
+        \path[line] (parity1) -- (checksum1);
+        \path[line] (checksum1) -- (parity2);
+        \path[line] (parity2) -- (checksum2);
+        \path[line] (checksum2) -- (parity3);
+        \path[line] (parity3) -- (checksum3);
+        \path[line] (checksum3) -- (address);
+        \draw (address) |- +(-6,-1.5) -- (eparity);
+        \draw (large) -| node [near start] {yes} +(7,-18.5);
+        \draw (small) -- node [near start] {yes} +(7,0);
+        %\path[line, dashed] (cont2) -- +(0,-1.375);
+        \path[line, dashed] (address) +(4, -1.5) node {} -- +(4,-3);
+        \path[line, dashed] (address) +(-3,-1.5) node {} -- +(-3,-3);
+    \end{tikzpicture}
+\end{center}

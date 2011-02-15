@@ -1,0 +1,21 @@
+\begin{center}
+    \begin{tikzpicture}[node distance = 1.5cm, auto]
+        \node (cont) {};
+        \node[left of=cont, node distance = 6.25cm] {};
+        \node[decision, below of=cont] (errors) {Address $>$ 0 ?};
+        \node[decision, below of=errors, node distance = 3cm] (correctable) {Parity of Total Is Even?};
+        \node[block, below of=correctable, node distance = 3cm] (fix) {Correct Bit at Address};
+        \node[block, right of=correctable, node distance = 7cm] (failure) {Register r0 = -1};
+        \node[block, below of=fix] (extract) {Extract Data Bits};
+        \node[cloud, below of=extract] (stop) {Stop};
+        \path[line, dashed] (cont) -- (errors);
+        \path[line, dashed] (cont) + (7,0) -- (failure);
+        \path[line] (errors) -- node [near start] {yes} (correctable);
+        \path[line] (correctable) -- node [near start] {yes} (fix);
+        \path[line] (errors) --  node [near start] {no} +(-4,0) |- (extract);
+        \path[line] (correctable) -- node [near start] {no} (failure);
+        \path[line] (failure) |- (stop);
+        \path[line] (fix) -- (extract);
+        \path[line] (extract) -- (stop);
+    \end{tikzpicture}
+\end{center}

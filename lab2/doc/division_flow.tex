@@ -1,0 +1,33 @@
+\begin{center}
+    \begin{tikzpicture}[node distance = 1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (initq) {Initialize Quotient to 0};
+        \node[block, below of=initq] (initr) {Initialize Remainder};
+        \node[block, below of=initr] (initc) {Initialize Counter to 16};
+        \node[block, below of=initc] (lsldivor) {Logical Shift Left Divisor 16 Places};
+        \node[block, below of=lsldivor] (subr) {Remainder := Remainder - Divisor};
+        \node[decision, below of=subr] (rcheck) {Is\\Remainder $<$ 0 ?};
+        \node[block, right of=rcheck, node distance = 7cm] (addr) {Remainder := Remainder + Divisor};
+        \node[mlblock, below of=addr] (lsq0) {Logical Shift Quotient\\LSB = 0};
+        \node[mlblock, below of=rcheck, node distance = 3cm] (lsq1) {Logical Shift Quotient\\LSB = 1};
+        \node[mlblock, below of=lsq1] (msb) {Right Shift Divisor\\MSB=0};
+        \node[decision, below of=msb] (ccheck) {Is Counter $\leq$ 1 ?};
+        \node[block, left of=ccheck, node distance = 5cm] (dcount) {Decrement Counter};
+        \node[cloud, below of=ccheck, node distance = 3cm] (stop) {Stop};
+        \path[line] (origin) -- (initq);
+        \path[line] (initq) -- (initr);
+        \path[line] (initr) -- (initc);
+        \path[line] (initc) -- (lsldivor);
+        \path[line] (lsldivor) -- (subr);
+        \path[line] (subr) -- (rcheck);
+        \path[line] (rcheck) -- node [near start] {yes} (addr);
+        \path[line] (addr) -- (lsq0);
+        \path[line] (rcheck) -- node [near start] {no} (lsq1);
+        \path[line] (lsq0) |- (msb);
+        \path[line] (lsq1) -- (msb);
+        \path[line] (msb) -- (ccheck);
+        \path[line] (ccheck) -- node [near start] {yes} (dcount);
+        \path[line] (dcount) |- (subr);
+        \path[line] (ccheck) -- node [near start] {no} (stop);
+    \end{tikzpicture}
+\end{center}
