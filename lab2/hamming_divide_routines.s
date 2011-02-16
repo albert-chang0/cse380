@@ -15,11 +15,13 @@ hamming
         
         ; we can only accept 8-bit hamming codes
         cmp r0, #0xff
-        bgt exf
+        movgt r0, #-1
+        bgt done
 
         ; can't handle negative numbers
         cmp r0, #0
-        blt exf
+        movlt r0, #-1
+        blt done
 
         ; counts the correction parity (8th bit)
         and r7, r0, #0x80
@@ -63,7 +65,8 @@ hamming
 
         ; is it correctable?
         cmp r7, #0
-        beq exf
+        moveq r0, #-1
+        beq done
 
         sub r5, r5, #1          ; correct the error
         mov r6, #1              ; arm asm doesn't allow an immediate to be shifted
@@ -79,9 +82,6 @@ recon   mov r0, r1, lsr #2      ; reconstruct
 
 done    ldmfd r13!, {r1-r12, r14}
         bx lr      ; Return to the C program    
-
-exf     mov r0, #-1 ; return(EXIT_FAILURE);
-        b done
 
 div
         stmfd r13!, {r1-r12, r14}
