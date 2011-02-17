@@ -71,12 +71,25 @@
     instructions and there are added instructions for constructing and
     destructing strings for analysis.
 
+    The flow of the main routine appears linear in the flowchart. However,
+    there are some loops to acomplish the conversion of a string to an
+    integer and a string into an integer.
+
+    In order to convert a string to an integer, we iterate through the string,
+    converting each digit from the ascii value to the integer it represents.
+    As we iterate, to combine the other digits, multiply the current integer
+    by 10, and add the next one.
+
+    Converting from integer to string needed a little more work. The lowest
+    digit is extracted by moduloing the number by 10, and divide by 10.
+
     \input{main_flow}
 
     The \textit{division} flowchart was simply copied over from Lab 2 to use
     for the \textit{mod} flowchart. Note that although the flowchart is
     unchanged, there was a line that was changed so that it returned the
-    remainder instead of the quotient.
+    remainder instead of the quotient. An additional return was added on
+    to help with converting a string to integer.
 
     \input{division_flow}
 
