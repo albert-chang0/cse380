@@ -59,10 +59,19 @@
     only codes that needed to be split up between the two were the
     \textit{read\_string} and \textit{output\_string} routines.
 
-    The main routine, \textit{lab3}, flowed linearly with the main intricacies
-    in the other subroutines.
+    Although it would've been more efficient for subroutines to perform checks,
+    it was decided that  the checks would be placed in the main \textit{lab3}
+    routine. This would ensure the subroutines keep to their functions, never
+    leaving the scope of the job they were to perform. What we gain is the
+    routines are more portable. The other routines can be used by any other
+    routines. If we wanted to reuse these pieces of code, the custom checks may
+    need to be changed or remove completely to be compatible.
+    
+    The trade-off for this added portability is there are added branching
+    instructions and there are added instructions for constructing and
+    destructing strings for analysis.
 
-    %\input{main_flow}
+    \input{main_flow}
 
     The \textit{division} flowchart was simply copied over from Lab 2 to use
     for the \textit{mod} flowchart. Note that although the flowchart is
@@ -73,14 +82,14 @@
 
     The \textit{read\_character} flowchart came from lecture.
 
-    %\input{read_char_flow}
+    \input{read_char_flow}
 
     The \textit{output\_character} flowchart also came from lecture.
 
-    %\input{output_char_flow}
+    \input{output_char_flow}
 
-    The \textit{uart\_init} routine was a simple linear routine
-    %\input{uart_init_flow}
+    The \textit{uart\_init} routine was a simple linear routine.
+    \input{uart_init_flow}
 
     mod\_ui\_wrapper.c
     \lstinputlisting[language=C]{../mod_ui_wrapper.c}

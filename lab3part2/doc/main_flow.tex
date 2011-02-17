@@ -1,0 +1,25 @@
+\begin{center}
+    \begin{tikzpicture}[node distance = 1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (uart) {UART setup};
+        \node[block, below of=uart] (ui1) {Get user input 1};
+        \node[block, below of=ui1] (val1) {Convert to integer and validate input};
+        \node[block, below of=val1] (ui2) {Get user input 2};
+        \node[block, below of=ui2] (val2) {Convert to integer and validate input};
+        \node[block, below of=val2] (format) {Format Output};
+        \node[block, below of=format] (mod) {Perform modulo};
+        \node[block, below of=mod] (ans) {Convert answer to string};
+        \node[block, below of=ans] (output) {Output answer};
+        \node[cloud, below of=output] (stop) {Stop};
+        \path[line] (origin) -- (uart);
+        \path[line] (uart) -- (ui1);
+        \path[line] (ui1) -- (val1);
+        \path[line] (val1) -- (ui2);
+        \path[line] (ui2) -- (val2);
+        \path[line] (val2) -- (format);
+        \path[line] (format) -- (mod);
+        \path[line] (mod) -- (ans);
+        \path[line] (ans) -- (output);
+        \path[line] (output) -- (stop);
+    \end{tikzpicture}
+\end{center}
