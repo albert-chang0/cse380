@@ -50,16 +50,15 @@ lab3
         ; receiver first user input and validate it
 invld1  bl read_string
 
+        ldr r0, =sram_base
+        add r0, r0, #string1
+
         ; convert ascii into integer
 asmno1  ldrb r1, [r0], #1
 
         ; checks for null character
         cmp r1, #0
         beq bloop1      ; "break" loop
-
-        ; check for '-' in the event of a negative number
-        cmp r1, #45
-        beq invld1
 
         ; check if it's larger than 99,999
         ; performed here so we can get out of this as quickly as possible
@@ -86,9 +85,16 @@ bloop1  mov r4, r2
 
         ldr r0, =prompt
         bl output_string
+
+        mov r2, #0
+
         ldr r0, =sram_base
         add r0, r0, #string2
+
 invld2  bl read_string
+
+        ldr r0, =sram_base
+        add r0, r0, #string2
 
         ; convert ascii into integer
 asmno2  ldrb r1, [r0], #1
@@ -96,10 +102,6 @@ asmno2  ldrb r1, [r0], #1
         ; checks for null character
         cmp r1, #0
         beq bloop2      ; "break" loop
-
-        ; check for '-' in the event of a negative number
-        cmp r1, #45
-        beq invld2
 
         ; check if it's larger than 99,999
         ; performed here so we can get out of this as quickly as possible
@@ -143,6 +145,14 @@ bloop2  mov r5, r2
         ldr r0, =sram_base
         add r0, r0, #string2
         bl output_string
+
+        ; print out " = "
+        mov r0, #32
+        bl output_character
+        mov r0, #61
+        bl output_character
+        mov r0, #32
+        bl output_character
 
         ; perform the actual modulo function
         mov r1, r4
@@ -292,11 +302,9 @@ read    bl read_character
         cmp r0, #0xd            ; returns on carriage return
         bne read
 
-        ; replace carriage return with null character
+        ; add mull character
         mov r0, #0
         strb r0, [r1, #-1]
-
-        mov r0, r1
 
         ldmfd sp!, {r1-r12, lr}
         bx lr
