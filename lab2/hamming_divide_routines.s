@@ -84,7 +84,7 @@ done    ldmfd r13!, {r1-r12, r14}
         bx lr      ; Return to the C program    
 
 div
-        stmfd r13!, {r1-r12, r14}
+        stmfd r13!, {r2-r12, r14}
 
         ; assumes the flow chart provided in the division discussion is correct
 
@@ -111,7 +111,7 @@ shftd   mov r1, r1, lsr #1 ; right shift divisor, msb = 0
 
 exit    mov r0, r2
 
-        ldmfd r13!, {r1-r12, r14}
+        ldmfd r13!, {r2-r12, r14}
         bx lr      ; Return to the C program    
 
 rless   add r3, r3, r1 ; remainder = remainder + divisor
