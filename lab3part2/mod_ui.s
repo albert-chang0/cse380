@@ -66,6 +66,8 @@ asmno1  ldrb r1, [r0], #1
         bgt invld1
 
         ; checks if ascii values are numbers
+        ; since negative numbers start with -, this will also check for values
+        ; less than 0.
         cmp r1, #48
         blt invld1
         cmp r1, #57
@@ -109,6 +111,8 @@ asmno2  ldrb r1, [r0], #1
         bgt invld1
 
         ; checks if ascii values are numbers
+        ; since negative numbers start with -, this will also check for values
+        ; less than 0.
         cmp r1, #48
         blt invld1
         cmp r1, #57
@@ -160,7 +164,7 @@ bloop2  mov r5, r2
         bl mod
 
         ; convert binary integer to string of integer for printing
-        mov r1, r0              ; preserve original number
+        mov r1, r0              ; r1 will hold what needs to go to RAM
         mov r3, #0
         ldr r2, =sram_base
         add r2, r2, #string3
@@ -169,12 +173,11 @@ bloop2  mov r5, r2
 strtoi  mov r0, #10
         bl mod                  ; isolate last number
         add r0, r0, #48         ; convert integer to ascii by adding 48
-        ldrb r0, [r2], #-1      ; concat onto string3
-        mov r0, r1
-        cmp r0, #0
+        ldrb r0, [r2], #-1      ; concat to beginning of string3
+        cmp r1, #0
         bne strtoi
 
-        add r0, r3, #1 ; get last character placed in string
+        add r0, r2, #1 ; get last character placed in string
         bl output_string
 
         ldmfd sp!, {lr} ; Restore register lr from stack    
