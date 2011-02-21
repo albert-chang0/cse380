@@ -1,3 +1,14 @@
+    area library, code, readwrite
+    export uart_init
+    export output_character
+    export read_character
+    export output_string
+    export read_string
+    export display_digit
+    export read_push_btns
+    export leds
+    export rgb_leds
+
 ; uart_init
 ; parameters: none
 ; returns: none
