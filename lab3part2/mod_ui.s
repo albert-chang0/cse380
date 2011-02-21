@@ -8,9 +8,12 @@ u0lcr equ 0xc               ; UART0 line control register
 u0dlm equ 0x4               ; UART0 divisor latch MSB register
                             ; UART0 divisor latch LSB register has no offset
 prompt  = "Enter a number:  ",0          
-string1 = "000000000000000000000000000000000"   ; 32-byte strings
-string2 = "000000000000000000000000000000000"
-string3 = "000000"
+; 32-byte strings (allows for longer than accepted inputs in case user doesn't
+; obey
+; Use null characters instead of actual 0s
+string1 = 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+string2 = 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+string3 = 0,0,0,0,0,0
 limit   = "99999"
         align
 
@@ -170,6 +173,11 @@ strtoi  mov r0, #10
         add r0, r2, #1 ; get last character placed in string
         bl output_string
 
+        mov r0, #0xa
+        bl output_character
+        mov r0, #0xd
+        bl output_character
+
         ldmfd sp!, {lr} ; Restore register lr from stack    
         bx lr
 
@@ -288,11 +296,11 @@ read_string
         stmfd sp!, {r1-r12, lr}
 
         mov r1, r0
-        mov r2, #0
 
 read    bl read_character
         bl output_character     ; give instant feedback
         ; output non-printable characters, but don't store them
+        mov r2, #0
         cmp r0, #32
         addge r2, #1
         cmpge r0, #126
@@ -340,7 +348,6 @@ mod
         mov r3, r1          ; initialize remainder to dividend
         mov r4, #0x10       ; initialize counter to 16
         mov r0, r0, lsl #0x10 ; logical left shift divisor 16 places
-
 cloop   sub r3, r3, r0 ; remainder = remainder - divisor; cloop is the counter loop
         cmp r3, #0          ; remainder < 0
         blt rless
