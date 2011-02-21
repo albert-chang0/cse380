@@ -7,13 +7,11 @@ u0lsr equ 0x14              ; UART0 line status register
 u0lcr equ 0xc               ; UART0 line control register
 u0dlm equ 0x4               ; UART0 divisor latch MSB register
                             ; UART0 divisor latch LSB register has no offset
-sram_base equ 0x40000000    ; SRAM base address for LPC2138
-string1 equ 0x20            ; string 1 storage
-string2 equ 0x40            ; string 2 storage
-string3 equ 0xf0            ; string 3 storage
-                            ; NOTE: limits to 32 byte string
-
-prompt = "Enter a number:  ",0          
+prompt  = "Enter a number:  ",0          
+string1 = "000000000000000000000000000000000"   ; 32-byte strings
+string2 = "000000000000000000000000000000000"
+string3 = "000000"
+limit   = "99999"
         align
 
 ; lab3
@@ -36,7 +34,7 @@ lab3
         ; r5 - upper limit/temporary hold for second number
         ;      NOTE: immediates are limited to 255 and a rotation (1020)
         mov r2, #0
-        ldr r5, =99999
+        ldr r5, =limit
         bl uart_init
 
         ; prompt user
@@ -44,14 +42,12 @@ lab3
         bl output_string
 
         ; location of string1
-        ldr r0, =sram_base
-        add r0, r0, #string1
+        ldr r0, =string1
 
         ; receiver first user input and validate it
 invld1  bl read_string
 
-        ldr r0, =sram_base
-        add r0, r0, #string1
+        ldr r0, =string1
 
         ; convert ascii into integer
 asmno1  ldrb r1, [r0], #1
@@ -90,13 +86,11 @@ bloop1  mov r4, r2
 
         mov r2, #0
 
-        ldr r0, =sram_base
-        add r0, r0, #string2
+        ldr r0, =string2
 
 invld2  bl read_string
 
-        ldr r0, =sram_base
-        add r0, r0, #string2
+        ldr r0, =string2
 
         ; convert ascii into integer
 asmno2  ldrb r1, [r0], #1
@@ -133,8 +127,7 @@ bloop2  mov r5, r2
         ; outputs:
         ; string1 % string2 = string3
         ; print out string1
-        ldr r0, =sram_base
-        add r0, r0, #string1
+        ldr r0, =string1
         bl output_string
 
         ; print out " % "
@@ -146,8 +139,7 @@ bloop2  mov r5, r2
         bl output_character
 
         ; print out string2
-        ldr r0, =sram_base
-        add r0, r0, #string2
+        ldr r0, =string2
         bl output_string
 
         ; print out " = "
@@ -165,15 +157,13 @@ bloop2  mov r5, r2
 
         ; convert binary integer to string of integer for printing
         mov r1, r0              ; r1 will hold what needs to go to RAM
-        mov r3, #0
-        ldr r2, =sram_base
-        add r2, r2, #string3
-        strb r3, [r2], #-1      ; string will be made backwards starting from null
+        ldr r2, =string3
+        add r2, r2, #4
 
 strtoi  mov r0, #10
         bl mod                  ; isolate last number
         add r0, r0, #48         ; convert integer to ascii by adding 48
-        ldrb r0, [r2], #-1      ; concat to beginning of string3
+        strb r0, [r2], #-1      ; concat to beginning of string3
         cmp r1, #0
         bne strtoi
 
@@ -298,16 +288,30 @@ read_string
         stmfd sp!, {r1-r12, lr}
 
         mov r1, r0
+        mov r2, #0
 
 read    bl read_character
         bl output_character     ; give instant feedback
-        strb r0, [r1], #1
+        ; output non-printable characters, but don't store them
+        cmp r0, #32
+        addge r2, #1
+        cmpge r0, #126
+        addle r2, #1
+        cmp r2, #2
+        strbeq r0, [r1], #1
         cmp r0, #0xd            ; returns on carriage return
         bne read
 
-        ; add mull character
+        ; store null character
         mov r0, #0
-        strb r0, [r1, #-1]
+        strb r0, [r1]
+
+        mov r0, #0xa
+        bl output_character
+        mov r0, #0xd
+        bl output_character
+
+        mov r1, r0
 
         ldmfd sp!, {r1-r12, lr}
         bx lr
@@ -336,6 +340,7 @@ mod
         mov r3, r1          ; initialize remainder to dividend
         mov r4, #0x10       ; initialize counter to 16
         mov r0, r0, lsl #0x10 ; logical left shift divisor 16 places
+
 cloop   sub r3, r3, r0 ; remainder = remainder - divisor; cloop is the counter loop
         cmp r3, #0          ; remainder < 0
         blt rless
