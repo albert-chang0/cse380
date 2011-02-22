@@ -18,11 +18,11 @@
         \path[line] (ui1) -- (val1);
         \path[line] (val1) -- (chck1);
         \path[line] (chck1) -- node [near start] {yes} (ui2);
-        \path[line] (chck1) -| node [near start] {no} +(3,3) -- (val1);
+        \path[line] (chck1) -| node [near start] {no} +(3,4.5) -- (ui1);
         \path[line] (ui2) -- (val2);
         \path[line] (val2) -- (chck2);
         \path[line] (chck2) -- node [near start] {yes} (format);
-        \path[line] (chck2) -| node [near start] {no} +(3,3) -- (val2);
+        \path[line] (chck2) -| node [near start] {no} +(3,4.5) -- (ui2);
         \path[line] (format) -- (mod);
         \path[line] (mod) -- (ans);
         \path[line] (ans) -- (output);
