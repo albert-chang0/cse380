@@ -29,6 +29,7 @@ prompt  = "Welcome to GPIO Test",10,13,\
 uprompt = 10,13,"Now use PuTTY and watch it display on 7-segment display.",10,13,0
 vprompt = "Enter numbers and letters.",10,13,0
 eprompt = "Error. ",0
+exitmsg = 10,13,"Bye!",10,13,0
 digits_set  dcd 0x00001F80  ; 0
             dcd 0x00000300  ; 1 
             dcd 0x00002d80  ; 2
@@ -56,7 +57,7 @@ digits_set  dcd 0x00001F80  ; 0
 ; button being pushed. After all four have been pushed, enter next mode.
 ;
 ; Allow users to enter hex into PuTTY, and display digits on 7-segment
-; display. Upon hitting [Qq], exit. Allowable inputs: [0-9a-zA-Z]. Turn
+; display. Upon hitting [Qq], exit. Allowable inputs: [0-9a-fA-F]. Turn
 ; off 7-segment display on invalid.
 lab4
         stmfd sp!,{lr}  ; Store register lr on stack
@@ -89,7 +90,7 @@ lab4
 
         ; indicate we are waiting for user input
         ; green light
-btnlp   mov r0, #0x4
+btnlp   mov r0, #0x400
         bl rgb_leds
 
         bl read_push_btns
@@ -113,7 +114,7 @@ btnlp   mov r0, #0x4
         
         ; indicate user has pushed a button
         ; blue light
-        mov r0, #0x3
+        mov r0, #0x30
         bl rgb_leds
 
         cmp r1, #0xf
@@ -126,7 +127,8 @@ btnlp   mov r0, #0x4
 
         ; indicate UART is running
         ; white light
-        mov r0, #0x3
+        mov r0, #0x400
+        add r0, r0, #0x3c
         bl rgb_leds
 
         ldr r0, =uprompt
@@ -136,10 +138,56 @@ remind  ldr r0, =vprompt
 
         bl read_character
 
-        ; limit to [0-9a-zA-Z]
+        ; limit to [0-9a-fA-F]
+
+        mov r1, #0
+        ; 0-9
         cmp r0, #48
-        blt error
+        addge r1, r1, #1
         cmp r0, #57
+        addle r1, r1, #1
+        cmp r1, #2
+        b valid
+
+        ; A-F
+        mov r1, #0
+        cmp r0, #65
+        addge r1, r1, #1
+        cmp r0, #70
+        addle r1, r1, #1
+        cmp r1, #2
+        b valid
+
+        ; a-f
+        mov r1, #0
+        cmp r0, #97
+        addge r1, r1, #1
+        cmp r0, #102
+        addle r1, r1, #1
+        cmp r1, #2
+        b valid
+
+        ; Q|q
+        cmp r0, #81
+        b exit
+        cmp r0, #113
+        b exit
+
+        ldr r0, =eprompt
+        bl output_string
+        mov r0, #0
+        bl display_digit
+        b remind
+
+valid   bl output_character
+        mov r1, r0
+        mov r0, #13
+        bl output_character
+        mov r0, r1
+        bl display_digits
+
+exit    ldr r0, =exitmsg
+        bl output_string
 
         ; indicate user has quit the program
         ; red light
@@ -149,8 +197,4 @@ remind  ldr r0, =vprompt
         ldmfd sp!, {lr} ; Restore register lr from stack    
         bx lr
 
-error   ldr r0, =eprompt
-        bl output_string
-        b remind
-    
         end
