@@ -1,0 +1,15 @@
+library.s
+    write display_digits routine
+    write read_push_btns routine
+    write led routine
+    write rgb_led routine
+
+gpio_test.s
+    mode 1
+        branch link read_push_btns routine
+        process button (increase counter), light up led
+        if all buttons have been pushed, continue to mode 2, loop otherwise
+
+    mode 2
+        read from PuTTY
+        if [Qq] has been hit, exit, otherwise display on 7-seg display
