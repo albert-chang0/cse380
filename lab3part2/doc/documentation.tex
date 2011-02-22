@@ -71,10 +71,6 @@
     instructions and there are added instructions for constructing and
     destructing strings for analysis.
 
-    The flow of the main routine appears linear in the flowchart. However,
-    there are some loops to acomplish the conversion of a string to an
-    integer and a string into an integer.
-
     In order to convert a string to an integer, we iterate through the string,
     converting each digit from the ascii value to the integer it represents.
     As we iterate, to combine the other digits, multiply the current integer
@@ -85,6 +81,9 @@
 
     \input{main_flow}
 
+    The \textit{uart\_init} routine was a simple linear routine.
+    \input{uart_init_flow}
+
     The \textit{division} flowchart was simply copied over from Lab 2 to use
     for the \textit{mod} flowchart. Note that although the flowchart is
     unchanged, there was a line that was changed so that it returned the
@@ -94,18 +93,26 @@
     \input{division_flow}
 
     The \textit{read\_character} flowchart came from lecture.
-
     \input{read_char_flow}
 
     The \textit{output\_character} flowchart also came from lecture.
-
     \input{output_char_flow}
 
-    The \textit{uart\_init} routine was a simple linear routine.
-    \input{uart_init_flow}
+    The \textit{output\_string} routine basically iterates bytes in the given
+    address until a null character is met.
+    \input{output_string_flow}
+
+    The \textit{read\_string} routine was a little more complicated than
+    \textit{output\_string} because it doesn't store non-printable ascii
+    characters, such as the backspace. However, it will still output those
+    non-printable characters. So when a user hits the backspace, it will
+    backspace.
+    \input{read_string_flow}
 
     mod\_ui\_wrapper.c
     \lstinputlisting[language=C]{../mod_ui_wrapper.c}
+
+    \newpage
 
     mod\_ui.s
     \lstinputlisting{../mod_ui.s}
