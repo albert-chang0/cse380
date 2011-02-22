@@ -8,6 +8,7 @@ u0lcr equ 0xc               ; UART0 line control register
 u0dlm equ 0x4               ; UART0 divisor latch MSB register
                             ; UART0 divisor latch LSB register has no offset
 prompt  = "Enter a number:  ",0          
+eprompt = "Error. ",0
 ; 32-byte strings (allows for longer than accepted inputs in case user doesn't
 ; obey
 ; Use null characters instead of actual 0s
@@ -41,14 +42,14 @@ lab3
         bl uart_init
 
         ; prompt user
-        ldr r0, =prompt
+invld1  ldr r0, =prompt
         bl output_string
 
         ; location of string1
         ldr r0, =string1
 
         ; receiver first user input and validate it
-invld1  bl read_string
+        bl read_string
 
         ldr r0, =string1
 
@@ -62,14 +63,23 @@ asmno1  ldrb r1, [r0], #1
         ; check if it's larger than 99,999
         ; performed here so we can get out of this as quickly as possible
         cmp r2, r5
+        ldrgt r0, =eprompt
+        blgt output_string
+        cmp r2, r5      ; renew NZCV flags
         bgt invld1
 
         ; checks if ascii values are numbers
         ; since negative numbers start with -, this will also check for values
         ; less than 0.
         cmp r1, #48
+        ldrlt r0, =eprompt
+        bllt output_string
+        cmp r1, #48     ; renew NZCV flags
         blt invld1
         cmp r1, #57
+        ldrgt r0, =eprompt
+        blgt output_string
+        cmp r1, #57     ; renew NZCV flags
         bgt invld1
 
         ; actual conversion of ascii to integer
@@ -84,14 +94,14 @@ asmno1  ldrb r1, [r0], #1
 
 bloop1  mov r4, r2
 
-        ldr r0, =prompt
+invld2  ldr r0, =prompt
         bl output_string
 
         mov r2, #0
 
         ldr r0, =string2
 
-invld2  bl read_string
+        bl read_string
 
         ldr r0, =string2
 
@@ -105,14 +115,23 @@ asmno2  ldrb r1, [r0], #1
         ; check if it's larger than 99,999
         ; performed here so we can get out of this as quickly as possible
         cmp r2, r5
-        bgt invld1
+        ldrgt r0, =eprompt
+        blgt output_string
+        cmp r2, r5      ; renew NZCV flags
+        bgt invld2
 
         ; checks if ascii values are numbers
         ; since negative numbers start with -, this will also check for values
         ; less than 0.
         cmp r1, #48
-        blt invld1
+        ldrlt r0, =eprompt
+        bllt output_string
+        cmp r1, #48     ; renew NZCV flags
+        blt invld2
         cmp r1, #57
+        ldrgt r0, =eprompt
+        blgt output_string
+        cmp r1, #57     ; renew NZCV flags
         bgt invld2
 
         ; convert ascii to integer
