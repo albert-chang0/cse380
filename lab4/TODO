@@ -6,10 +6,12 @@ library.s
 
 gpio_test.s
     mode 1
+        light up rgb_leds to indicate we are in mode 1
         branch link read_push_btns routine
         process button (increase counter), light up led
         if all buttons have been pushed, continue to mode 2, loop otherwise
 
     mode 2
+        light up rgb_leds to indicate we are in mode 2
         read from PuTTY
         if [Qq] has been hit, exit, otherwise display on 7-seg display
