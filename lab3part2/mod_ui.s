@@ -72,7 +72,7 @@ asmno1  ldrb r1, [r0], #1
         cmp r1, #57
         bgt invld1
 
-        ; convert ascii to integer
+        ; actual conversion of ascii to integer
         sub r1, r1, #48
 
         ; put the numbers together
