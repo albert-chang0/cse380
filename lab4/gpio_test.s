@@ -24,7 +24,11 @@ io1set equ 0x14
 io1dir equ 0x18
 io1clr equ 0x1c
 
-prompt  = "Welcome to lab #4 ",0    ; Text to be sent to PuTTy
+prompt  = "Welcome to GPIO Test",10,13,\
+          "Please push the buttons",0    ; Text to be sent to PuTTy
+uprompt = 10,13,"Now use PuTTY and watch it display on 7-segment display.",10,13,0
+vprompt = "Enter numbers and letters.",10,13,0
+eprompt = "Error. ",0
 digits_set  dcd 0x00001F80  ; 0
             dcd 0x00000300  ; 1 
             dcd 0x00002d80  ; 2
@@ -58,6 +62,13 @@ lab4
         stmfd sp!,{lr}  ; Store register lr on stack
 
         ; Mode 1
+        ; r1 - button counter
+        mov r1, #0
+
+        ; nice display
+        bl uart_init
+        ldr r0, =prompt
+        bl output_string
 
         ; setup gpio, makes sure ports 0.7-0.13 are for gpio by zeroing them.
         ldr r0, =pinsel0
@@ -72,16 +83,74 @@ lab4
         ldr r0, =iobase
         add r0, r0, #io1dir
         ldr r1, [r0]
-        orr r1, r1, #f0000
-        bic r1, r1, #f00000
+        orr r1, r1, #0xf0000
+        bic r1, r1, #0xf00000
         str r1, [r0]
+
+        ; indicate we are waiting for user input
+        ; green light
+btnlp   mov r0, #0x4
+        bl rgb_leds
+
+        bl read_push_btns
+        bl leds
+
+        ; 0th bit indicates first button
+        cmp r0, #0x0
+        orr r1, r1, #1
+
+        ; 1st bit indicates second button
+        cmp r0, #0x0
+        orr r1, r1, #2
+
+        ; 2nd bit indicates third button
+        cmp r0, #0x0
+        orr r1, r1, #4
+
+        ; 3rd bit indicates fourth button
+        cmp r0, #0x0
+        orr r1, r1, #8
+        
+        ; indicate user has pushed a button
+        ; blue light
+        mov r0, #0x3
+        bl rgb_leds
+
+        cmp r1, #0xf
+        blt btnlp
 
         ; Mode 2
 
-        ; setup uart
-        bl uart_init
+        ; make sure uart is ready
+        ;bl uart_init
+
+        ; indicate UART is running
+        ; white light
+        mov r0, #0x3
+        bl rgb_leds
+
+        ldr r0, =uprompt
+        bl output_string
+remind  ldr r0, =vprompt
+        bl output_string
+
+        bl read_character
+
+        ; limit to [0-9a-zA-Z]
+        cmp r0, #48
+        blt error
+        cmp r0, #57
+
+        ; indicate user has quit the program
+        ; red light
+        mov r0, #0xc
+        bl rgb_leds
 
         ldmfd sp!, {lr} ; Restore register lr from stack    
         bx lr
+
+error   ldr r0, =eprompt
+        bl output_string
+        b remind
     
         end

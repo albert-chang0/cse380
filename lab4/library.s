@@ -137,7 +137,7 @@ read    bl read_character
         mov r2, #0
         cmp r0, #32
         addge r2, #1
-        cmpge r0, #126
+        cmp r0, #126
         addle r2, #1
         cmp r2, #2
         strbeq r0, [r1], #1
@@ -212,6 +212,9 @@ rgb_leds
         ldr r1, =pinsel0
         ldr r2, [r1]
 
+        bic r2, r2, #f00
+        bic r2, r2, #ff
+        orr r2, r2, r0
 
         str r2, [r1]
 
