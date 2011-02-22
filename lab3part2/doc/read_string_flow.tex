@@ -1,0 +1,23 @@
+\begin{center}
+    \begin{tikzpicture}[node distance = 1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (read) {Read from UART};
+        \node[block, below of=read] (write) {Output character unconditionally};
+        \node[decision, below of=write] (printable) {Is it a printable character?};
+        \node[block, below of=printable, node distance=3cm] (store) {Store character into memory};
+        \node[decision, below of=store] (cr) {Did the user hit the Enter key?};
+        \node[block, below of=cr, node distance=3cm] (null) {Store null character};
+        \node[block, below of=null] (nl) {Output a newline};
+        \node[cloud, below of=nl] (stop) {Stop};
+        \path[line] (origin) -- (read);
+        \path[line] (read) -- (write);
+        \path[line] (write) -- (printable);
+        \path[line] (printable) -| node [near start] {no} +(3,-6) -- (cr);
+        \path[line] (printable) -- node [near start] {yes} (store);
+        \path[line] (store) -- (cr);
+        \path[line] (cr) -| node [near start] {no} +(-4,10.5) -- (read);
+        \path[line] (cr) -- node [near start] {yes} (null);
+        \path[line] (null) -- (nl);
+        \path[line] (nl) -- (stop);
+    \end{tikzpicture}
+\end{center}
