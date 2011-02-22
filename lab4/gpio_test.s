@@ -1,6 +1,16 @@
     area    gpio, code, readwrite   
     export lab4
 
+    extern uart_init
+    extern output_character
+    extern read_character
+    extern output_string
+    extern read_string
+    extern display_digit
+    extern read_push_btns
+    extern leds
+    extern rgb_leds
+
 piodata equ 0x8         ; Offset to parallel I/O data register
 pinsel0 equ 0xe002c000
 pinsel1 equ 0x4         ; offset from pinsel0
@@ -32,14 +42,44 @@ digits_set  dcd 0x00001F80  ; 0
             dcd 0x00003c80  ; E
             dcd 0x00003880  ; F
         align
+
+; lab4
+; parameters: none
+; returns: none
+;
+; First, allow user to hit all four momentary push buttons one at a time
+; (simultaneous multiple buttons ignored). Illuminate LED next to push
+; button being pushed. After all four have been pushed, enter next mode.
+;
+; Allow users to enter hex into PuTTY, and display digits on 7-segment
+; display. Upon hitting [Qq], exit. Allowable inputs: [0-9a-zA-Z]. Turn
+; off 7-segment display on invalid.
 lab4
         stmfd sp!,{lr}  ; Store register lr on stack
 
-        ; setup pin connection block
+        ; Mode 1
+
+        ; setup gpio, makes sure ports 0.7-0.13 are for gpio by zeroing them.
         ldr r0, =pinsel0
-        mov r1, #0
+        ldr r1, [r0]
+        bic r1, r1, #0xff00000
+        bic r1, r1, #0xfc000
         str r1, [r0]
-        ; set direction for each pin
+
+        ; setup direction
+        ; P1.16-P1.19, output, LEDs
+        ; P1.20-P1.23, input, buttons
+        ldr r0, =iobase
+        add r0, r0, #io1dir
+        ldr r1, [r0]
+        orr r1, r1, #f0000
+        bic r1, r1, #f00000
+        str r1, [r0]
+
+        ; Mode 2
+
+        ; setup uart
+        bl uart_init
 
         ldmfd sp!, {lr} ; Restore register lr from stack    
         bx lr
