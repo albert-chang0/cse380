@@ -7,7 +7,7 @@
     export display_digit
     export read_push_btns
     export leds
-    export rgb_leds
+    export rgb_led
 
 pinsel0 equ 0xe002c000      ; UART0 pin select
 u0base equ 0xe000c000       ; UART0 base address
@@ -40,6 +40,9 @@ digits_set  dcd 0x00001F80  ; 0
             dcd 0x00002f00  ; d
             dcd 0x00003c80  ; E
             dcd 0x00003880  ; F
+
+; NOTE: putting out a high turns on LEDs instead of turning them off
+; workaround: use io1clr to output, use io1set to clear
 
 ; uart_init
 ; parameters: none
@@ -216,11 +219,29 @@ read_push_btns
 ; returns: none
 ;
 ; Illuminates the pattern of LEDs passed into register r0.
+; 0x1 - LED1
+; 0x2 - LED2
+; 0x4 - LED3
+; 0x8 - LED4
 leds
-        stmfd sp!, {r1-r12, lr}
+        stmfd sp!, {r1, r2, lr}
 
+        ; r1 - working address
+        ; r2 - scratchpad
 
-        ldmfd sp!, {r1-r12, lr}
+        ; clears all LEDs
+        ldr r1, =iobase
+        add r1, r1, #io1set
+        mov r2, #0xf0000
+        str r2, [r0]
+
+        ; turn on LED
+        ldr r1, =iobase
+        add r1, r1, #io1clr
+        mov r0, r0, lsl #0x10
+        str r0, [r1]
+
+        ldmfd sp!, {r1, r2, lr}
         bx lr
 
 ; rgb_leds
@@ -232,19 +253,21 @@ leds
 ; red:   0xc bits 0-3
 ; blue:  0x3 bits 4-7
 ; green: 0x4 bits 8-11
-rgb_leds
+rgb_led
         stmfd sp!, {r1, r2, lr}
 
         ldr r1, =pinsel0
         ldr r2, [r1]
 
-        bic r2, r2, #f00
-        bic r2, r2, #ff
+        ; turn off previous lights
+        bic r2, r2, #0xc
+        bic r2, r2, #0x30
+        bic r2, r2, #0x400
         orr r2, r2, r0
 
         str r2, [r1]
 
-        ldmfd sp!, {r1-r12, lr}
+        ldmfd sp!, {r1, r2, lr}
         bx lr
 
         end

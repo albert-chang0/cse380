@@ -9,20 +9,15 @@
     extern display_digit
     extern read_push_btns
     extern leds
-    extern rgb_leds
+    extern rgb_led
 
 piodata equ 0x8         ; Offset to parallel I/O data register
 pinsel0 equ 0xe002c000
 pinsel1 equ 0x4         ; offset from pinsel0
 iobase equ 0xe0028000
                         ; io0pin has no offset
-io0set equ 0x4
 io0dir equ 0x8
-io0clr equ 0xc
-io1pin equ 0x10
-io1set equ 0x14
 io1dir equ 0x18
-io1clr equ 0x1c
 
 prompt  = "Welcome to GPIO Test",10,13,\
           "Please push the buttons",0    ; Text to be sent to PuTTy
@@ -30,6 +25,7 @@ uprompt = 10,13,"Now use PuTTY and watch it display on 7-segment display.",10,13
 vprompt = "Enter numbers and letters.",10,13,0
 eprompt = "Error. ",0
 exitmsg = 10,13,"Bye!",10,13,0
+        align
 digits_set  dcd 0x00001F80  ; 0
             dcd 0x00000300  ; 1 
             dcd 0x00002d80  ; 2
@@ -46,7 +42,6 @@ digits_set  dcd 0x00001F80  ; 0
             dcd 0x00002f00  ; d
             dcd 0x00003c80  ; E
             dcd 0x00003880  ; F
-        align
 
 ; lab4
 ; parameters: none
@@ -92,7 +87,7 @@ lab4
         ; indicate we are waiting for user input
         ; green light
 btnlp   mov r0, #0x400
-        bl rgb_leds
+        bl rgb_led
 
         bl read_push_btns
         bl leds
@@ -116,7 +111,7 @@ btnlp   mov r0, #0x400
         ; indicate user has pushed a button
         ; blue light
         mov r0, #0x30
-        bl rgb_leds
+        bl rgb_led
 
         cmp r1, #0xf
         blt btnlp
@@ -130,7 +125,7 @@ btnlp   mov r0, #0x400
         ; white light
         mov r0, #0x400
         add r0, r0, #0x3c
-        bl rgb_leds
+        bl rgb_led
 
         ldr r0, =uprompt
         bl output_string
@@ -193,7 +188,7 @@ exit    ldr r0, =exitmsg
         ; indicate user has quit the program
         ; red light
         mov r0, #0xc
-        bl rgb_leds
+        bl rgb_led
 
         ldmfd sp!, {lr} ; Restore register lr from stack    
         bx lr
