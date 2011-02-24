@@ -57,7 +57,9 @@
     And finally, the \textit{uart\_init} routine was a simple rewrite of the
     \textit{serial\_init} function from the C wrapper that was provided. The
     only codes that needed to be split up between the two were the
-    \textit{read\_string} and \textit{output\_string} routines.
+    \textit{read\_string}, \textit{output\_string}, and \textit{lab3}  routines.
+    Albert wrote the \textit{output\_string} and \textit{lab3} routines, while
+    Nipun wrote the \textit{read\_string} routine.
 
     Although it would've been more efficient for subroutines to perform checks,
     it was decided that  the checks would be placed in the main \textit{lab3}
@@ -82,32 +84,43 @@
 
     \input{main_flow}
 
-    The \textit{uart\_init} routine was a simple linear routine.
+    The \textit{uart\_init} routine was a simple linear routine. It was a direct
+    translation of the \textit{serial\_init} function in the c wrapper.
     \input{uart_init_flow}
 
     The \textit{division} flowchart was simply copied over from Lab 2 to use
     for the \textit{mod} flowchart. Note that although the flowchart is
     unchanged, there was a line that was changed so that it returned the
     remainder instead of the quotient. An additional return was added on
-    to help with converting a string to integer.
+    to help with converting a string to integer, allowing the routine to return
+    both the modulo and the division between the two numbers.
 
     \input{division_flow}
 
-    The \textit{read\_character} flowchart came from lecture.
-    \input{read_char_flow}
+    The \textit{read\_character} and \textit{output\_character} flowcharts both
+    came from lecture.
 
-    The \textit{output\_character} flowchart also came from lecture.
-    \input{output_char_flow}
+    \begin{minipage}{0.5\linewidth}
+        \input{read_char_flow}
+    \end{minipage}%
+    \begin{minipage}{0.5\linewidth}
+        \input{output_char_flow}
+    \end{minipage}
 
     The \textit{output\_string} routine basically iterates bytes in the given
-    address until a null character is met.
+    address until a null character is met. It passes each byte to the
+    \textit{output\_character} routine.
     \input{output_string_flow}
 
     The \textit{read\_string} routine was a little more complicated than
-    \textit{output\_string} because it doesn't store non-printable ascii
-    characters, such as the backspace. However, it will still output those
-    non-printable characters. So when a user hits the backspace, it will
-    backspace.
+    \textit{output\_string}. First, it it gives direct feedback. Every time a
+    character is read in from \textit{read\_character}, it outputs the character
+    through \textit{output\_character}. It does this regardless of the input.
+    However, in checks for and stores only printable characters. So the user
+    would be able to hit the backspace, and the UART will respond expectedly,
+    but it won't store the backspace into memory. This is the action taken with
+    all non-printable characters. Finally, when the user hits enter, it creates
+    a nice output by printing out a new line and carriage return.
     \input{read_string_flow}
 
     mod\_ui\_wrapper.c
