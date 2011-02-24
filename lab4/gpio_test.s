@@ -64,7 +64,6 @@ lab4
 
         ; Mode 1
         ; r1 - button counter
-        mov r1, #0
 
         ; nice display
         bl uart_init
@@ -87,6 +86,8 @@ lab4
         orr r1, r1, #0xf0000
         bic r1, r1, #0xf00000
         str r1, [r0]
+
+        mov r1, #0
 
         ; indicate we are waiting for user input
         ; green light

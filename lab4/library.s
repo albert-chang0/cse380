@@ -15,6 +15,32 @@ u0lsr equ 0x14              ; UART0 line status register
 u0lcr equ 0xc               ; UART0 line control register
 u0dlm equ 0x4               ; UART0 divisor latch MSB register
                             ; UART0 divisor latch LSB register has no offset
+iobase equ 0xe0028000
+                        ; io0pin has no offset
+io0set equ 0x4
+io0dir equ 0x8
+io0clr equ 0xc
+io1pin equ 0x10
+io1set equ 0x14
+io1dir equ 0x18
+io1clr equ 0x1c
+digits_set  dcd 0x00001F80  ; 0
+            dcd 0x00000300  ; 1 
+            dcd 0x00002d80  ; 2
+            dcd 0x00002780  ; 3
+            dcd 0x00003300  ; 4
+            dcd 0x00003680  ; 5
+            dcd 0x00003e80  ; 6
+            dcd 0x00000380  ; 7
+            dcd 0x00003f80  ; 8
+            dcd 0x00003780  ; 9
+            dcd 0x00003b80  ; A
+            dcd 0x00003e00  ; b
+            dcd 0x00001c80  ; C
+            dcd 0x00002f00  ; d
+            dcd 0x00003c80  ; E
+            dcd 0x00003880  ; F
+
 ; uart_init
 ; parameters: none
 ; returns: none
@@ -22,7 +48,7 @@ u0dlm equ 0x4               ; UART0 divisor latch MSB register
 ; Enables and configures the UART we are going to use (UART0).
 ; Basically a translation of the function serial_init() in mod_ui_wrapper.c.
 uart_init
-        stmfd sp!, {r1-r12, lr}
+        stmfd sp!, {r1, lr}
 
         ldr r1, =pinsel0
 
@@ -64,7 +90,7 @@ uart_init
 ; Taken from the first part of lab3, this accepts a parameter from register
 ; r0, and outputs it to UART.
 output_character
-        stmfd sp!, {r1-r12, lr}
+        stmfd sp!, {r1, r2, lr}
 
         ldr r2, =u0base         ; UART0 base address
 
@@ -86,7 +112,7 @@ tpoll   ldrb r1, [r2, #u0lsr]   ; load status register
 ; Taken from the first part of lab3, this reads from UART and returns it in
 ; register r0.
 read_character
-        stmfd sp!, {r1-r12, lr}
+        stmfd sp!, {r1, r2, lr}
 
         ldr r2, =u0base         ; UART0 base address
 
@@ -108,7 +134,7 @@ rpoll   ldrb r1, [r2, #u0lsr]   ; load status register
 ; Displays a null terminated string, which the base address is passed in
 ; through register r0, to UART.
 output_string
-        stmfd sp!, {r1-r12, lr}
+        stmfd sp!, {r1, lr}
 
         mov r1, r0
 
@@ -127,7 +153,7 @@ soloop  ldrb r0, [r1], #1
 ;
 ; Reads in a string from UART and stores the base address in register r0.
 read_string
-        stmfd sp!, {r1-r12, lr}
+        stmfd sp!, {r1, r2, lr}
 
         mov r1, r0
 
@@ -207,7 +233,7 @@ leds
 ; blue:  0x3 bits 4-7
 ; green: 0x4 bits 8-11
 rgb_leds
-        stmfd sp!, {r1-r12, lr}
+        stmfd sp!, {r1, r2, lr}
 
         ldr r1, =pinsel0
         ldr r2, [r1]
