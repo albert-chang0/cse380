@@ -26,22 +26,6 @@ vprompt = "Enter numbers and letters.",10,13,0
 eprompt = "Error. ",0
 exitmsg = 10,13,"Bye!",10,13,0
         align
-digits_set  dcd 0x00001F80  ; 0
-            dcd 0x00000300  ; 1 
-            dcd 0x00002d80  ; 2
-            dcd 0x00002780  ; 3
-            dcd 0x00003300  ; 4
-            dcd 0x00003680  ; 5
-            dcd 0x00003e80  ; 6
-            dcd 0x00000380  ; 7
-            dcd 0x00003f80  ; 8
-            dcd 0x00003780  ; 9
-            dcd 0x00003b80  ; A
-            dcd 0x00003e00  ; b
-            dcd 0x00001c80  ; C
-            dcd 0x00002f00  ; d
-            dcd 0x00003c80  ; E
-            dcd 0x00003880  ; F
 
 ; lab4
 ; parameters: none
