@@ -1,0 +1,53 @@
+\documentclass[letterpaper,10pt]{article}
+
+\usepackage{listings}
+\usepackage{color}
+\usepackage{tikz}
+
+\setlength{\headheight}{0in}
+\setlength{\marginparsep}{0in}
+\setlength{\footskip}{0in}
+\setlength{\headsep}{0in}
+\setlength{\marginparwidth}{0in}
+\setlength{\marginparpush}{0in}
+\setlength{\voffset}{0in}
+\setlength{\hoffset}{-1in}
+\setlength{\voffset}{-1in}
+\setlength{\oddsidemargin}{0.75in}
+\setlength{\evensidemargin}{0.75in}
+\setlength{\topmargin}{0.75in}
+\setlength{\textheight}{9.5in}
+\setlength{\textwidth}{7in}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{10pt} %change this to match font size
+
+\pagestyle{empty}
+\definecolor{gray}{gray}{0.75}
+\usetikzlibrary{shapes,arrows,calc}
+\lstset{numbers=left,backgroundcolor=\color{gray},frame=single}
+
+% define block styles
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{block} = [draw, rectangle, text centered, minimum height=2em]
+\tikzstyle{mlblock} = [draw, rectangle, text width=10em, text centered, minimum height=2em]
+\tikzstyle{decision} = [draw, diamond, text width=4.5em, text centered, node distance=3cm, inner sep=0pt]
+\tikzstyle{cloud} = [draw, rectangle, text centered, rounded corners, minimum height=2em]
+
+\begin{document}
+    Albert Chang and Nipun Chopra\\
+    CSE-380 A6\\
+    University at Buffalo\\
+    Dr. Kris Schindler\\
+    March 1, 2011\\
+    \textit{Lab 4 Documentation}
+
+    The objective of Lab 4 was to learn about using the general purpose
+    input/output, GPIO, and how to factor code using \textbf{export} and
+    \textbf{extern}. There are two parts to the program.
+
+    First the user pushes each of the four push buttons. As the buttons are
+    pushed, the corresponding LEDs light up. After each individual button has
+    been pushed once, the program moves onto the second part of the program.
+
+    The second part makes use of 
+\end{document}
