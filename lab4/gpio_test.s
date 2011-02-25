@@ -70,11 +70,10 @@ lab4
 
         ; indicate we are waiting for user input
         ; green light
-btnlp   mov r0, #0x400
+btnpl   mov r0, #0x400
         bl rgb_led
 
         bl read_push_btns
-        bl leds
 
         ; 0th bit indicates first button
         ; only stores when one button is pushed
@@ -102,7 +101,7 @@ btnlp   mov r0, #0x400
         bl rgb_led
 
         cmp r1, #0xf
-        blt btnlp
+        blt btnpl
 
         ; Mode 2
 
