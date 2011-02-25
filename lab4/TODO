@@ -2,9 +2,6 @@ library.s
     write display_digits routine
     write read_push_btns routine
 
-gpio_test.s
-    mode 1
-        process button press
-
 expect code from partner on Saturday
-rgb_led should work now, needs to be tested
+rgb_led needs to be tested
+test overall program

@@ -77,19 +77,23 @@ btnlp   mov r0, #0x400
         bl leds
 
         ; 0th bit indicates first button
-        cmp r0, #0x0
+        ; only stores when one button is pushed
+        cmp r0, #0x1
         orr r1, r1, #1
 
         ; 1st bit indicates second button
-        cmp r0, #0x0
+        ; only store when one button is pushed
+        cmp r0, #0x2
         orr r1, r1, #2
 
         ; 2nd bit indicates third button
-        cmp r0, #0x0
+        ; only store when one button is pushed
+        cmp r0, #0x4
         orr r1, r1, #4
 
         ; 3rd bit indicates fourth button
-        cmp r0, #0x0
+        ; only store when one button is pushed
+        cmp r0, #0x8
         orr r1, r1, #8
         
         ; indicate user has pushed a button
