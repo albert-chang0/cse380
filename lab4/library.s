@@ -198,12 +198,12 @@ read    bl read_character
 display_digit
         stmfd sp!, {r1-r12, lr}
 
-        LDR r3,= 0xE0028000     ; the base address of seven segment display in r3
-        LDR r4,=digits_set      ; it will point to the base address of the digits_set 
-        MOV r0, r0,LSL #2       ; multiplying the value stored in ro by 4
-        MOV r2,#0               ; initializing r2 to 0 so no garbage value is stored
-        LDR r2,[r4,r0]          ; r2= value stored at address (r4+r0)
-        STR r2,[r3,#4]          ; the value in r2 will be stored at a (r3+4bytes) address
+        ldr r3,= 0xE0028000     ; the base address of seven segment display in r3
+        ldr r4,=digits_set      ; it will point to the base address of the digits_set 
+        mov r0, r0,LSL #2       ; multiplying the value stored in ro by 4
+        mov r2,#0               ; initializing r2 to 0 so no garbage value is stored
+        ldr r2,[r4,r0]          ; r2= value stored at address (r4+r0)
+        str r2,[r3,#4]          ; the value in r2 will be stored at a (r3+4bytes) address
 
         ldmfd sp!, {r1-r12, lr}
         bx lr
