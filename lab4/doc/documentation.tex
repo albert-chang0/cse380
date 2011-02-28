@@ -49,5 +49,53 @@
     pushed, the corresponding LEDs light up. After each individual button has
     been pushed once, the program moves onto the second part of the program.
 
-    The second part makes use of 
+    The second part makes use of program uses the UART. The user enters in a
+    hexadecimal, 0-9, a-f, and A-F, and it is printed on the seven-segment
+    display. Upon writting either Q or q, the program quits.
+
+    The user is given feedback by the RGB LED. When the program is waiting for
+    push button input, it lights green. When the user pushes a button, it
+    lights blue. When it is waiting for UART input, it lights white. Finally,
+    when it exits, it lights red.
+
+    Half of the routines were written in the previous labs. Their respective
+    flowcharts are shown in Figs. \ref{flo:uart_init}, \ref{flo:chars},
+    \ref{flo:output_string}, and \ref{flo:read_string}.
+
+    \begin{figure}[p]
+        \input{uart_init_flow}
+        \caption{Flowchart of \textit{uart\_init} routine.}
+        \label{flo:uart_init}
+    \end{figure}
+
+    \begin{figure}[p]
+        \begin{minipage}{0.5\linewidth}
+            \input{output_char_flow}
+        \end{minipage}%
+        \begin{minipage}{0.5\linewidth}
+            \input{read_char_flow}
+        \end{minipage}
+        \caption{Flowcharts of \textit{output\_char} (left) and \textit{read\_char} (right) routines.}
+        \label{flo:chars}
+    \end{figure}
+
+    \begin{figure}[p]
+        \input{output_string_flow}
+        \caption{Flowchart of \textit{output\_string} routine.}
+        \label{flo:output_string}
+    \end{figure}
+
+    \begin{figure}[p]
+        \input{read_string_flow}
+        \caption{Flowchart of \textit{read\_string} routine.}
+        \label{flo:read_string}
+    \end{figure}
+
+    All of the new routines are linear, simply reading from or writing to
+    their respective register. There was an issue where it seemed the
+    IOSET and IOCLR pins were either mixed up or swapped. Even when the
+    routines used the address given by the LPC2138 board, IOSET cleared
+    the bits where a 1 was written, which is how IOCLR should work.
+    Similarly, IOCLR set the bits where a 1 was written to, which is how
+    IOSET should work. To fix this, the addresses were swapped.
 \end{document}
