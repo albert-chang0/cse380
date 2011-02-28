@@ -18,12 +18,14 @@ u0dlm equ 0x4               ; UART0 divisor latch MSB register
 iobase equ 0xe0028000
 io0dir equ 0x8
 io0pin equ 0x0
-io0clr equ 0xc
-io0set equ 0x4
+;io0clr equ 0xc          ; from LPC2138 documentation
+;io0set equ 0x4          ; from LPC2138 documentation
+io0clr equ 0x4          ; tested to work
+io0set equ 0xc          ; tested to work
 io1dir equ 0x18
 io1pin equ 0x10
-#io1clr equ 0x1c        ; from LPC2138 documentation
-#io1set equ 0x14        ; from LPC2138 documentation
+#io1clr equ 0x1c         ; from LPC2138 documentation
+#io1set equ 0x14         ; from LPC2138 documentation
 io1clr equ 0x14         ; tested to work
 io1set equ 0x1c         ; tested to work
 digits_set  dcd 0x00001F80  ; 0
@@ -237,15 +239,13 @@ leds
 
         ; clears all LEDs
         ldr r1, =iobase
-        add r1, r1, #io1clr
         mov r2, #0xf0000
-        str r2, [r0]
+        str r2, [r0, #io1clr]
 
         ; turn on LED
         ldr r1, =iobase
-        add r1, r1, #io1set
         mov r0, r0, lsl #0x10
-        str r0, [r1]
+        str r0, [r1, #io1set]
 
         ldmfd sp!, {r1, r2, lr}
         bx lr
@@ -256,22 +256,17 @@ leds
 ; returns: none
 ;
 ; lights up the colored LED passed into register r0.
-; red:   0xc bits 0-3
-; blue:  0x3 bits 4-7
-; green: 0x4 bits 8-11
 rgb_led
         stmfd sp!, {r1, r2, lr}
 
         ldr r1, =pinsel0
-        ldr r2, [r1]
 
         ; turn off previous lights
-        bic r2, r2, #0xc
-        bic r2, r2, #0x30
-        bic r2, r2, #0x400
-        orr r2, r2, r0
+        mov r2, #0x260000
+        str r2, [r1, #pin0clr]
 
-        str r2, [r1]
+        mov r2, r0, lsl #0x10
+        str r2, [r1, #pin0set]
 
         ldmfd sp!, {r1, r2, lr}
         bx lr

@@ -19,8 +19,8 @@ iobase equ 0xe0028000
 io0dir equ 0x8
 io1dir equ 0x18
 
-prompt  = "Welcome to GPIO Test",10,13,\
-          "Please push the buttons",0    ; Text to be sent to PuTTy
+prompt  = "Welcome to GPIO Test!",10,13,\
+          "Please push the buttons.",0    ; Text to be sent to PuTTy
 uprompt = 10,13,"Now use PuTTY and watch it display on 7-segment display.",10,13,0
 vprompt = "Enter numbers and letters.",10,13,0
 eprompt = "Error. ",0
@@ -60,8 +60,7 @@ lab4
         ; P1.16-P1.19, output, LEDs
         ; P1.20-P1.23, input, buttons
         ldr r0, =iobase
-        add r0, r0, #io1dir
-        ldr r1, [r0]
+        ldr r1, [r0, #io1dir]
         orr r1, r1, #0xf0000
         bic r1, r1, #0xf00000
         str r1, [r0]
@@ -70,34 +69,34 @@ lab4
 
         ; indicate we are waiting for user input
         ; green light
-btnpl   mov r0, #0x400
+btnpl   mov r0, #0x20
         bl rgb_led
 
         bl read_push_btns
 
         ; 0th bit indicates first button
         ; only stores when one button is pushed
-        cmp r0, #0x1
-        orr r1, r1, #1
+        cmp r0, #2_1
+        orreq r1, r1, #2_1
 
         ; 1st bit indicates second button
         ; only store when one button is pushed
-        cmp r0, #0x2
-        orr r1, r1, #2
+        cmp r0, #2_10
+        orreq r1, r1, #2_10
 
         ; 2nd bit indicates third button
         ; only store when one button is pushed
-        cmp r0, #0x4
-        orr r1, r1, #4
+        cmp r0, #2_100
+        orreq r1, r1, #2_100
 
         ; 3rd bit indicates fourth button
         ; only store when one button is pushed
-        cmp r0, #0x8
-        orr r1, r1, #8
+        cmp r0, #2_1000
+        orreq r1, r1, #2_1000
         
         ; indicate user has pushed a button
         ; blue light
-        mov r0, #0x30
+        mov r0, #0x4
         bl rgb_led
 
         cmp r1, #0xf
@@ -110,8 +109,7 @@ btnpl   mov r0, #0x400
 
         ; indicate UART is running
         ; white light
-        mov r0, #0x400
-        add r0, r0, #0x3c
+        mov r0, #0x26
         bl rgb_led
 
         ldr r0, =uprompt
@@ -174,7 +172,7 @@ exit    ldr r0, =exitmsg
 
         ; indicate user has quit the program
         ; red light
-        mov r0, #0xc
+        mov r0, #0x2
         bl rgb_led
 
         ldmfd sp!, {lr} ; Restore register lr from stack    
