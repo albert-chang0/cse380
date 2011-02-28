@@ -16,14 +16,16 @@ u0lcr equ 0xc               ; UART0 line control register
 u0dlm equ 0x4               ; UART0 divisor latch MSB register
                             ; UART0 divisor latch LSB register has no offset
 iobase equ 0xe0028000
-                        ; io0pin has no offset
-io0set equ 0x4
 io0dir equ 0x8
+io0pin equ 0x0
 io0clr equ 0xc
-io1pin equ 0x10
-io1set equ 0x14
+io0set equ 0x4
 io1dir equ 0x18
-io1clr equ 0x1c
+io1pin equ 0x10
+#io1clr equ 0x1c        ; from LPC2138 documentation
+#io1set equ 0x14        ; from LPC2138 documentation
+io1clr equ 0x14         ; tested to work
+io1set equ 0x1c         ; tested to work
 digits_set  dcd 0x00001F80  ; 0
             dcd 0x00000300  ; 1 
             dcd 0x00002d80  ; 2
@@ -196,6 +198,12 @@ read    bl read_character
 display_digit
         stmfd sp!, {r1-r12, lr}
 
+        LDR r3,= 0xE0028000     ; the base address of seven segment display in r3
+        LDR r4,=digits_set      ; it will point to the base address of the digits_set 
+        MOV r0, r0,LSL #2       ; multiplying the value stored in ro by 4
+        MOV r2,#0               ; initializing r2 to 0 so no garbage value is stored
+        LDR r2,[r4,r0]          ; r2= value stored at address (r4+r0)
+        STR r2,[r3,#4]          ; the value in r2 will be stored at a (r3+4bytes) address
 
         ldmfd sp!, {r1-r12, lr}
         bx lr
@@ -231,13 +239,13 @@ leds
 
         ; clears all LEDs
         ldr r1, =iobase
-        add r1, r1, #io1set
+        add r1, r1, #io1clr
         mov r2, #0xf0000
         str r2, [r0]
 
         ; turn on LED
         ldr r1, =iobase
-        add r1, r1, #io1clr
+        add r1, r1, #io1set
         mov r0, r0, lsl #0x10
         str r0, [r1]
 
