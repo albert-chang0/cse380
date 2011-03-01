@@ -79,7 +79,7 @@ uart_init
         mov r0, #3
         strb r0, [r1, #u0lcr]
 
-        ldmfd sp!, {r1-r12, lr}
+        ldmfd sp!, {r1, lr}
         bx lr
 
 ; output_character
@@ -101,7 +101,7 @@ tpoll   ldrb r1, [r2, #u0lsr]   ; load status register
 
         strb r0, [r2]           ; write to UART register
 
-        ldmfd sp!, {r1-r12, lr}
+        ldmfd sp!, {r1, r2, lr}
         bx lr
 
 ; read_character
@@ -123,7 +123,7 @@ rpoll   ldrb r1, [r2, #u0lsr]   ; load status register
 
         ldrb r0, [r2]           ; read receiver buffer
 
-        ldmfd sp!, {r1-r12, lr}
+        ldmfd sp!, {r1, r2, lr}
         bx lr
 
 ; output_string
@@ -143,7 +143,7 @@ soloop  ldrb r0, [r1], #1
         blne output_character
         bne soloop
 
-        ldmfd sp!, {r1-r12, lr}
+        ldmfd sp!, {r1, lr}
         bx lr
 
 ; read_string
@@ -181,7 +181,7 @@ read    bl read_character
 
         mov r1, r0
 
-        ldmfd sp!, {r1-r12, lr}
+        ldmfd sp!, {r1, r2, lr}
         bx lr
 
 ; display_digit
@@ -191,7 +191,7 @@ read    bl read_character
 ; 
 ; Displays the digit given in register r0 to the 7-segment digital display.
 display_digit
-        stmfd sp!, {r1-r12, lr}
+        stmfd sp!, {r1, r2, lr}
 
         ; r1 - lights for 7-seg
         ; r2 - working address
@@ -212,7 +212,7 @@ display_digit
         ldr r2, =iobase
         str r1, [r2, #io0set]
 
-        ldmfd sp!, {r1-r12, lr}
+        ldmfd sp!, {r1, r2, lr}
         bx lr
 
 ; read_push_btns
@@ -224,6 +224,7 @@ display_digit
 read_push_btns
         stmfd sp!, {r1-r12, lr}
 
+        bl leds
 
         ldmfd sp!, {r1-r12, lr}
         bx lr
@@ -253,10 +254,6 @@ leds
         mov r2, r0, lsl #0x10
         str r2, [r1, #io1clr]
 
-        ; just a test
-        mvn r2, r0, lsl #0x10
-        str r2, [r1, #io1set]
-
         ldmfd sp!, {r1, r2, lr}
         bx lr
 
@@ -273,10 +270,10 @@ rgb_led
 
         ; turn off previous lights
         mov r2, #0x260000
-        str r2, [r1, #pin0set]
+        str r2, [r1, #io0set]
 
         mov r2, r0, lsl #0x10
-        str r2, [r1, #pin0clr]
+        str r2, [r1, #io0clr]
 
         ldmfd sp!, {r1, r2, lr}
         bx lr

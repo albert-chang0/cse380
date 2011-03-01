@@ -4,6 +4,6 @@ library.s
 gpio_test.s
     convert string to integer before sending to display_digit
 
-expect code from partner on Saturday
-rgb_led needs to be tested
 test overall program
+
+NOTE: push buttons are high when not pressed, and low when pressed

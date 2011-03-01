@@ -59,11 +59,27 @@ lab4
         ; setup direction
         ; P1.16-P1.19, output, LEDs
         ; P1.20-P1.23, input, buttons
+        ; P0.17, P0.18, P0.20, output RGB LED
+        ; P0.7-P0.13, output 7-segment
         ldr r0, =iobase
         ldr r1, [r0, #io1dir]
         orr r1, r1, #0xf0000
         bic r1, r1, #0xf00000
         str r1, [r0, #io1dir]
+        ldr r1, [r0, #io0dir]
+        orr r1, r1, #0x260000
+        orr r1, r1, #0x3f80
+        str r1, [r0, #io0dir]
+
+        ; turn off LEDs
+        mov r0, #0
+        bl leds
+        bl rgb_led
+
+        ; test code
+        mov r0, #0
+        bl display_digit
+        ; end test
 
         mov r1, #0
 
@@ -165,7 +181,8 @@ valid   bl output_character
         mov r0, #13
         bl output_character
         mov r0, r1
-        bl display_digits
+        ; convert from string to hexadecimal
+        bl display_digit
 
 exit    ldr r0, =exitmsg
         bl output_string
