@@ -221,9 +221,12 @@ display_digit
 ;     r0 - button value
 ;
 ; Read momentary push button and returns its value in register r0.
+; 1 is off
+; 0 is on
 read_push_btns
         stmfd sp!, {r1-r12, lr}
 
+        ; blink corresponding LED
         bl leds
 
         ldmfd sp!, {r1-r12, lr}
