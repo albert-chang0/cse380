@@ -1,9 +1,4 @@
 library.s
     write read_push_btns routine
 
-gpio_test.s
-    convert string to integer before sending to display_digit
-
 test overall program
-
-NOTE: push buttons are high when not pressed, and low when pressed
