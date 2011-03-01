@@ -18,16 +18,12 @@ u0dlm equ 0x4               ; UART0 divisor latch MSB register
 iobase equ 0xe0028000
 io0dir equ 0x8
 io0pin equ 0x0
-;io0clr equ 0xc          ; from LPC2138 documentation
-;io0set equ 0x4          ; from LPC2138 documentation
-io0clr equ 0x4          ; tested to work
-io0set equ 0xc          ; tested to work
+io0clr equ 0xc
+io0set equ 0x4
 io1dir equ 0x18
 io1pin equ 0x10
-#io1clr equ 0x1c         ; from LPC2138 documentation
-#io1set equ 0x14         ; from LPC2138 documentation
-io1clr equ 0x14         ; tested to work
-io1set equ 0x1c         ; tested to work
+io1clr equ 0x1c
+io1set equ 0x14
 digits_set  dcd 0x00001F80  ; 0
             dcd 0x00000300  ; 1 
             dcd 0x00002d80  ; 2
@@ -44,9 +40,6 @@ digits_set  dcd 0x00001F80  ; 0
             dcd 0x00002f00  ; d
             dcd 0x00003c80  ; E
             dcd 0x00003880  ; F
-
-; NOTE: putting out a high turns on LEDs instead of turning them off
-; workaround: use io1clr to output, use io1set to clear
 
 ; uart_init
 ; parameters: none
@@ -200,10 +193,24 @@ read    bl read_character
 display_digit
         stmfd sp!, {r1-r12, lr}
 
-        ldr r3,= 0xE0028000         ; the base address of seven segment display in r3
-        ldr r4,=digits_set          ; it will point to the base address of the digits_set 
-        ldr r1, [r2, r0, lsl #2]    ; r2= value stored at address (r4+r0)
-        str r1,[r3,#4]              ; the value in r2 will be stored at a (r3+4bytes) address
+        ; r1 - lights for 7-seg
+        ; r2 - working address
+
+        ; get value to display 8
+        ldr r2, =digits_set
+        ldr r1, [r2, #32]
+
+        ; clear previous display
+        ldr r2, =iobase
+        str r1, [r2, #io0clr]
+
+        ; translate digit to 7-seg display light-up
+        ldr r2, =digits_set
+        ldr r1, [r2, r0, lsl #2]
+
+        ; show on 7-seg display
+        ldr r2, =iobase
+        str r1, [r2, #io0set]
 
         ldmfd sp!, {r1-r12, lr}
         bx lr
@@ -240,17 +247,19 @@ leds
         ; clears all LEDs
         ldr r1, =iobase
         mov r2, #0xf0000
-        str r2, [r0, #io1clr]
+        str r2, [r1, #io1set]
 
         ; turn on LED
-        ldr r1, =iobase
-        mov r0, r0, lsl #0x10
-        str r0, [r1, #io1set]
+        mov r2, r0, lsl #0x10
+        str r2, [r1, #io1clr]
+
+        mvn r2, r0, lsl #0x10
+        str r2, [r1, #io1set]
 
         ldmfd sp!, {r1, r2, lr}
         bx lr
 
-; rgb_leds
+; rgb_led
 ; parameters:
 ;     r0 - color
 ; returns: none
@@ -259,14 +268,14 @@ leds
 rgb_led
         stmfd sp!, {r1, r2, lr}
 
-        ldr r1, =pinsel0
+        ldr r1, =iobase
 
         ; turn off previous lights
         mov r2, #0x260000
-        str r2, [r1, #pin0clr]
+        str r2, [r1, #pin0set]
 
         mov r2, r0, lsl #0x10
-        str r2, [r1, #pin0set]
+        str r2, [r1, #pin0clr]
 
         ldmfd sp!, {r1, r2, lr}
         bx lr

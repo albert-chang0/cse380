@@ -63,7 +63,7 @@ lab4
         ldr r1, [r0, #io1dir]
         orr r1, r1, #0xf0000
         bic r1, r1, #0xf00000
-        str r1, [r0]
+        str r1, [r0, #io1dir]
 
         mov r1, #0
 
