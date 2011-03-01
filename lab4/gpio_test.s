@@ -135,7 +135,7 @@ remind  ldr r0, =vprompt
 
         bl read_character
 
-        ; limit to [0-9a-fA-F]
+        ; limit to /[0-9a-fA-FqQ]/
 
         mov r1, #0
         ; 0-9
@@ -144,7 +144,8 @@ remind  ldr r0, =vprompt
         cmp r0, #57
         addle r1, r1, #1
         cmp r1, #2
-        b valid
+        subeq r0, r0, #48       ; valid input, convert to numbers 0-9
+        beq valid
 
         ; A-F
         mov r1, #0
@@ -153,7 +154,8 @@ remind  ldr r0, =vprompt
         cmp r0, #70
         addle r1, r1, #1
         cmp r1, #2
-        b valid
+        subeq r0, r0, #55       ; valid input, convert to numbers 10-15
+        beq valid
 
         ; a-f
         mov r1, #0
@@ -162,13 +164,14 @@ remind  ldr r0, =vprompt
         cmp r0, #102
         addle r1, r1, #1
         cmp r1, #2
-        b valid
+        subeq r0, r0, #87       ; valid input, convert to numbers 10-15
+        beq valid
 
         ; Q|q
         cmp r0, #81
-        b exit
+        beq exit
         cmp r0, #113
-        b exit
+        beq exit
 
         ldr r0, =eprompt
         bl output_string
@@ -181,7 +184,6 @@ valid   bl output_character
         mov r0, #13
         bl output_character
         mov r0, r1
-        ; convert from string to hexadecimal
         bl display_digit
 
 exit    ldr r0, =exitmsg
