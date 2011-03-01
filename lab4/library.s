@@ -253,6 +253,7 @@ leds
         mov r2, r0, lsl #0x10
         str r2, [r1, #io1clr]
 
+        ; just a test
         mvn r2, r0, lsl #0x10
         str r2, [r1, #io1set]
 
