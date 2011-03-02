@@ -226,6 +226,12 @@ display_digit
 read_push_btns
         stmfd sp!, {r1-r12, lr}
 
+        ldr r1, =iobase         ; loading the base address in r1
+        ldr r2, [r1, #iopin]        ; loading the value from io0pin to r2 >> please confirm the register value
+        and r3,r2, #0x00F00000      ; isloating the 20,,21,,22,,23rd bit
+        lsr r0, r3, #24         ; shifting if 24 bits to the right to get the number and store it in r0
+
+
         ; blink corresponding LED
         bl leds
 
