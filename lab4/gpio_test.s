@@ -22,7 +22,7 @@ prompt  = "Welcome to GPIO Test!",10,13,\
 uprompt = 10,13,"Now use PuTTY and watch it display on 7-segment display.",10,13,0
 vprompt = "Enter numbers and letters.",10,13,0
 eprompt = "Error. ",0
-exitmsg = 10,13,"Bye!",10,13,0
+exitmsg = 10,13,"Exiting. Bye!",10,13,0
         align
 
 ; lab4
@@ -44,6 +44,8 @@ lab4
 
         ; nice display
         bl uart_init
+        mov r0, #12
+        bl output_character
         ldr r0, =prompt
         bl output_string
 
@@ -73,14 +75,6 @@ lab4
         mov r0, #0
         bl leds
         bl rgb_led
-
-        ; test code
-        mov r0, #0
-loop    bl display_digit
-        cmp r0, #0xf
-        addlt r0, r0, #1
-        blt loop
-        ; end test
 
         mov r1, #0
 
@@ -113,16 +107,18 @@ btnpl   mov r0, #0x20
         
         ; indicate user has pushed a button
         ; blue light
-        mov r0, #0x4
-        bl rgb_led
+        cmp r0, #0
+        movne r0, #0x4
+        blne rgb_led
 
         cmp r1, #0xf
         blt btnpl
 
-        ; Mode 2
+        ; turn off LEDs near push buttons
+        mov r0, #0
+        bl leds
 
-        ; make sure uart is ready
-        ;bl uart_init
+        ; Mode 2
 
         ; indicate UART is running
         ; white light
@@ -134,7 +130,7 @@ btnpl   mov r0, #0x20
 remind  ldr r0, =vprompt
         bl output_string
 
-        bl read_character
+iloop   bl read_character
 
         ; limit to /[0-9a-fA-FqQ]/
 
@@ -145,7 +141,7 @@ remind  ldr r0, =vprompt
         cmp r0, #57
         addle r1, r1, #1
         cmp r1, #2
-        subeq r0, r0, #48       ; valid input, convert to numbers 0-9
+        subeq r1, r0, #48       ; valid input, convert to numbers 0-9
         beq valid
 
         ; A-F
@@ -155,7 +151,7 @@ remind  ldr r0, =vprompt
         cmp r0, #70
         addle r1, r1, #1
         cmp r1, #2
-        subeq r0, r0, #55       ; valid input, convert to numbers 10-15
+        subeq r1, r0, #55       ; valid input, convert to numbers 10-15
         beq valid
 
         ; a-f
@@ -165,7 +161,7 @@ remind  ldr r0, =vprompt
         cmp r0, #102
         addle r1, r1, #1
         cmp r1, #2
-        subeq r0, r0, #87       ; valid input, convert to numbers 10-15
+        subeq r1, r0, #87       ; valid input, convert to numbers 10-15
         beq valid
 
         ; Q|q
@@ -176,18 +172,20 @@ remind  ldr r0, =vprompt
 
         ldr r0, =eprompt
         bl output_string
-        mov r0, #0
+        mov r0, #-1
         bl display_digit
         b remind
 
 valid   bl output_character
-        mov r1, r0
         mov r0, #13
         bl output_character
         mov r0, r1
         bl display_digit
 
-exit    ldr r0, =exitmsg
+        b iloop
+
+exit    bl output_character
+        ldr r0, =exitmsg
         bl output_string
 
         ; indicate user has quit the program

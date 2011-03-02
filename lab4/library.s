@@ -204,6 +204,11 @@ display_digit
         ldr r2, =iobase
         str r1, [r2, #io0clr]
 
+        ; if -1 is sent, clear and exit
+        cmp r0, #-1
+        ldmeqfd sp!, {r1, r2, lr}
+        bxeq lr
+
         ; translate digit to 7-seg display light-up
         ldr r2, =digits_set
         ldr r1, [r2, r0, lsl #2]
