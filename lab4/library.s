@@ -221,21 +221,24 @@ display_digit
 ;     r0 - button value
 ;
 ; Read momentary push button and returns its value in register r0.
-; 1 is off
-; 0 is on
+; push buttons send 1 off, 0 on
+; return as 1 on, 0 off
 read_push_btns
-        stmfd sp!, {r1-r12, lr}
+        stmfd sp!, {r1, lr}
 
-        ldr r1, =iobase         ; loading the base address in r1
-        ldr r2, [r1, #iopin]        ; loading the value from io0pin to r2 >> please confirm the register value
-        and r3,r2, #0x00F00000      ; isloating the 20,,21,,22,,23rd bit
-        lsr r0, r3, #24         ; shifting if 24 bits to the right to get the number and store it in r0
+        ; load base address
+        ldr r1, =iobase
+        ldr r0, [r1, #io1pin]   ; loading the value from io1pin to r0
+        and r0, r0, #0xf00000   ; isolate bits 20:23
+        mov r0, r0, lsr #20
 
+        ; flip bits so 1s become 0s, and 0s become 1s
+        eor r0, r0, #0xf
 
         ; blink corresponding LED
         bl leds
 
-        ldmfd sp!, {r1-r12, lr}
+        ldmfd sp!, {r1, lr}
         bx lr
 
 ; leds
