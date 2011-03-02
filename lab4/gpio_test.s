@@ -1,4 +1,5 @@
     area    gpio, code, readwrite   
+
     export lab4
 
     extern uart_init
@@ -11,11 +12,8 @@
     extern leds
     extern rgb_led
 
-piodata equ 0x8         ; Offset to parallel I/O data register
 pinsel0 equ 0xe002c000
-pinsel1 equ 0x4         ; offset from pinsel0
 iobase equ 0xe0028000
-                        ; io0pin has no offset
 io0dir equ 0x8
 io1dir equ 0x18
 
@@ -78,7 +76,10 @@ lab4
 
         ; test code
         mov r0, #0
-        bl display_digit
+loop    bl display_digit
+        cmp r0, #0xf
+        addlt r0, r0, #1
+        blt loop
         ; end test
 
         mov r1, #0
