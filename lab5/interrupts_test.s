@@ -7,10 +7,12 @@
     extern output_character
     extern read_character
     extern output_string
-    extern read_string
     extern display_digit
 
 pinsel0 equ 0xe002c000      ; pin select
+u0base equ 0xe000c000       ; UART0 base address
+u0ier equ 0x4               ; UART0 interrupt enable register
+u0iir equ 0x8               ; UART0 interrupt identification register
 iobase equ 0xe0028000
 io0dir equ 0x8
 extint equ 0xe01fc140       ; external interrupt flag
@@ -19,7 +21,8 @@ vicbaseaddr equ 0xfffff000  ; vic base address
 vicintenable equ 0x10       ; interrupt enable
 vicintselect equ 0xc        ; select fiq or irq
 
-prompt = "Welcome to Interrupt Test!",0
+prompt = "Welcome to Interrupt Test!",\
+         "Enter numbers and letters.",10,13,0
     align
 
 ; lab5
@@ -52,6 +55,10 @@ lab5
         orr r1, r1, #0x3f80
         str r1, [r0, #io0dir]
 
+        ; prompt user
+        ldr r0, =prompt
+        bl output_string
+
         ldmfd sp!,{lr}
         bx lr
 
@@ -75,12 +82,14 @@ interrupt_init
         ldr r0, =vicbaseaddr
         ldr r1, [r0, #vicintselect]
         orr r1, r1, #0x8000             ; External Interrupt 1
+        orr r1, r1, #0x40               ; UART0
         str r1, [r0, #vicintselect]
 
         ; Enable Interrupts
         ldr r0, =vicbaseaddr
         ldr r1, [r0, #vicintenable] 
         orr r1, r1, #0x8000             ; External Interrupt 1
+        orr r1, r1, #0x40               ; UART0
         str r1, [r0, #vicintenable]
 
         ; External Interrupt 1 setup for edge sensitive
@@ -88,6 +97,12 @@ interrupt_init
         ldr r1, [r0, #extmode]
         orr r1, r1, #2                  ; EINT1 = Edge Sensitive
         str r1, [r0, #extmode]
+
+        ; UART0 interrupt on RX
+        ldr r0, =u0base
+        ldr r1, [r0, #u0ier]
+        orr r1, r1, #2_1                ; RBR interrupt enable
+        str r1, [r0, #u0ier]
 
         ; Enable FIQ's, Disable IRQ's
         mrs r0, cpsr
@@ -106,7 +121,7 @@ interrupt_init
 FIQ_Handler
         stmfd sp!, {r0-r12, lr}         ; Save registers 
 
-eint1                                   ; Check for EINT1 interrupt
+EINT1                                   ; Check for EINT1 interrupt
         ldr r0, =extint
         ldr r1, [r0]
         tst r1, #2
@@ -114,8 +129,61 @@ eint1                                   ; Check for EINT1 interrupt
 
         stmfd sp!, {r0-r12, lr}         ; Save registers 
 
+        mov r0, #-1
+        bl display_digit
 
         ldmfd sp!, {r0-r12, lr}         ; Restore registers
+
+U0IIR                                   ; Check for U0IIR interrupt
+        ldr r0, =u0base
+        ldr r1, [r0, u0iir]
+        and r1, #1
+        cmp r1, #1                      ; no pending interrupts
+        beq fiq_exit
+
+        stmfd sp!, {r0-r12, lr}
+
+        bl read_character
+
+        mov r1, #0
+        ; 0-9
+        cmp r0, #48
+        addge r1, r1, #1
+        cmp r0, #57
+        addle r1, r1, #1
+        cmp r1, #2
+        subeq r1, r0, #48       ; valid input, convert to numbers 0-9
+        beq valid
+
+        ; A-F
+        mov r1, #0
+        cmp r0, #65
+        addge r1, r1, #1
+        cmp r0, #70
+        addle r1, r1, #1
+        cmp r1, #2
+        subeq r1, r0, #55       ; valid input, convert to numbers 10-15
+        beq valid
+
+        ; a-f
+        mov r1, #0
+        cmp r0, #97
+        addge r1, r1, #1
+        cmp r0, #102
+        addle r1, r1, #1
+        cmp r1, #2
+        subeq r1, r0, #87       ; valid input, convert to numbers 10-15
+        beq valid
+
+        ldmfd sp!, {r0-r12, lr} ; ignore invalid input
+
+valid   bl output_character
+        mov r0, #13
+        bl output_character
+        mov r0, r1
+        bl display_digit
+
+        ldmfd sp!, {r0-r12, lr}
 
         orr r1, r1, #2                  ; Clear Interrupt
         str r1, [r0]
