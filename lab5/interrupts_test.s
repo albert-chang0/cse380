@@ -56,6 +56,10 @@ lab5
         orr r1, r1, #0x3f80
         str r1, [r0, #io0dir]
 
+        ; clear prompt
+        mov r0, #0xc
+        bl output_character
+
         ; prompt user
         ldr r0, =prompt
         bl output_string
@@ -72,28 +76,27 @@ lab5
 interrupt_init       
         stmfd sp!, {r0, r1, lr}         ; Save registers 
 
-        ; Push button setup      
+        ; push button setup      
         ldr r0, =pinsel0
         ldr r1, [r0]
         orr r1, r1, #0x20000000
         bic r1, r1, #0x10000000
         str r1, [r0]                    ; PINSEL0 bits 29:28 = 10
 
-        ; Classify sources as IRQ or FIQ
+        ; classify sources as IRQ or FIQ
         ldr r0, =vicbaseaddr
         ldr r1, [r0, #vicintselect]
         orr r1, r1, #0x8000             ; External Interrupt 1
         orr r1, r1, #0x40               ; UART0
         str r1, [r0, #vicintselect]
 
-        ; Enable Interrupts
-        ldr r0, =vicbaseaddr
+        ; enable Interrupts
         ldr r1, [r0, #vicintenable] 
         orr r1, r1, #0x8000             ; External Interrupt 1
         orr r1, r1, #0x40               ; UART0
         str r1, [r0, #vicintenable]
 
-        ; External Interrupt 1 setup for edge sensitive
+        ; external Interrupt 1 setup for edge sensitive
         ldr r0, =extint
         ldr r1, [r0, #extmode]
         orr r1, r1, #2                  ; EINT1 = Edge Sensitive
@@ -123,7 +126,6 @@ FIQ_Handler
         stmfd sp!, {r0-r12, lr}         ; Save registers 
 
         ; push button?
-eint1
         ldr r0, =extint
         ldr r1, [r0]
         tst r1, #2
@@ -146,8 +148,8 @@ uart0   ldr r0, =u0base
         ldr r1, [r0, #u0iir]
         tst r1, #1                      ; no pending interrupts
 
-        ldmnefd sp!, {r0-r12, lr}         ; guess it wasn't the uart either...
-        subnes pc, lr, #4                 ; exit FIQ
+        ldmnefd sp!, {r0-r12, lr}       ; guess it wasn't the uart either...
+        subnes pc, lr, #4               ; exit FIQ
 
         bl read_character
 
