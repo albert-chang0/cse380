@@ -92,10 +92,8 @@
     \end{figure}
 
     All of the new routines are linear, simply reading from or writing to
-    their respective register. There was an issue where it seemed the
-    IOSET and IOCLR pins were either mixed up or swapped. Even when the
-    routines used the address given by the LPC2138 board, IOSET cleared
-    the bits where a 1 was written, which is how IOCLR should work.
-    Similarly, IOCLR set the bits where a 1 was written to, which is how
-    IOSET should work. To fix this, the addresses were swapped.
+    their respective register. According to the \textit{LPC2138 Education Board
+    Users Guide}, the LEDs light when signals are pulled low. So sending a 1
+    to them, with IOSET, turns them off, while sending a 0 to them, with IOCLR,
+    turns them on.
 \end{document}
