@@ -95,8 +95,7 @@ output_character
         ldr r2, =u0base         ; UART0 base address
 
 tpoll   ldrb r1, [r2, #u0lsr]   ; load status register
-        and r1, r1, #0x20       ; test THRE
-        cmp r1, #0
+        tst r1, #0x20           ; test THRE
         beq tpoll               ; poll until ready to write
 
         strb r0, [r2]           ; write to UART register
@@ -117,8 +116,7 @@ read_character
         ldr r2, =u0base         ; UART0 base address
 
 rpoll   ldrb r1, [r2, #u0lsr]   ; load status register
-        and r1, r1, #1          ; test RDR
-        cmp r1, #0
+        tst r1, #1              ; test ROR
         beq rpoll               ; poll until something needs to be read
 
         ldrb r0, [r2]           ; read receiver buffer
