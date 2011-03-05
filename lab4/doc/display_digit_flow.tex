@@ -1,0 +1,16 @@
+\begin{center}
+    \begin{tikzpicture}[node distance = 1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (clear) {Clear previous display};
+        \node[decision, below of=clear] (exit) {Was requested output -1?};
+        \node[block, below of=exit, node distance=3cm] (addr) {Get address of lights to be lit};
+        \node[block, below of=addr] (display) {Show Display};
+        \node[cloud, below of=display] (stop) {Stop};
+        \path[line] (origin) -- (clear);
+        \path[line] (clear) -- (exit);
+        \path[line] (exit) -| node [near start] {yes} +(4,-6) -- (stop);
+        \path[line] (exit) -- node [near start] {no} (addr);
+        \path[line] (addr) -- (display);
+        \path[line] (display) -- (stop);
+    \end{tikzpicture}
+\end{center}

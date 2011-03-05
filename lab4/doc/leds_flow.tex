@@ -1,0 +1,11 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (clear) {Turn off all LEDs};
+        \node[block, below of=clear] (on) {Turn on LEDs passed into routine};
+        \node[cloud, below of=on] (stop) {Stop};
+        \path[line] (origin) -- (clear);
+        \path[line] (clear) -- (on);
+        \path[line] (on) -- (stop);
+    \end{tikzpicture}
+\end{center}

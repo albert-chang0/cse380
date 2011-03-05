@@ -1,0 +1,26 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[block] (read) {Read from UART0};
+        \node[decision, below of=read] (validate) {Was the input valid?};
+        \node[block, right of=validate, node distance=5cm] (err) {Prompt user of error};
+        \node[block, below of=validate, node distance=3cm] (output) {Output character to UART, but don't move cursor forward};
+        \node[decision, below of=output, node distance=3cm] (exit) {Was the input either q or Q?};
+        \node[block, below of=exit, node distance=3cm] (eprompt) {Prompt user the program is exiting};
+        \node[block, below of=eprompt] (red) {Turn RGB LED red};
+        \node[block, below of=red] (odisplay) {Turn off display};
+        \node[block, right of=exit, node distance=5cm] (display) {Display hexadecimal};
+        \node[cloud, below of=odisplay] (stop) {Stop};
+        \path[line, dashed] (read) +(0,1.5) -- (read);
+        \path[line] (read) -- (validate);
+        \path[line] (validate) -- node [near start] {no} (err);
+        \path[line] (err) -| +(2,3) -- (read);
+        \path[line] (validate) -- node [near start] {yes} (output);
+        \path[line] (output) -- (exit);
+        \path[line] (exit) -- node [near start] {no} (display);
+        \draw (display) -| +(2,6);
+        \path[line] (exit) -- node [near start] {yes} (eprompt);
+        \path[line] (eprompt) -- (red);
+        \path[line] (red) -- (odisplay);
+        \path[line] (odisplay) -- (stop);
+    \end{tikzpicture}
+\end{center}

@@ -1,0 +1,15 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (read) {Read from IO1PIN};
+        \node[block, below of=read] (isolate) {Isolate push button bits};
+        \node[block, below of=isolate] (flip) {Flip the bits};
+        \node[block, below of=flip] (led) {Light corresponding LED};
+        \node[cloud, below of=led] (stop) {Stop};
+        \path[line] (origin) -- (read);
+        \path[line] (read) -- (isolate);
+        \path[line] (isolate) -- (flip);
+        \path[line] (flip) -- (led);
+        \path[line] (led) -- (stop);
+    \end{tikzpicture}
+\end{center}

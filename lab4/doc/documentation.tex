@@ -3,6 +3,7 @@
 \usepackage{listings}
 \usepackage{color}
 \usepackage{tikz}
+\usepackage{caption}
 
 \setlength{\headheight}{0in}
 \setlength{\marginparsep}{0in}
@@ -24,7 +25,7 @@
 \pagestyle{empty}
 \definecolor{gray}{gray}{0.75}
 \usetikzlibrary{shapes,arrows,calc}
-\lstset{numbers=left,backgroundcolor=\color{gray},frame=single}
+\lstset{backgroundcolor=\color{gray},frame=single}
 
 % define block styles
 \tikzstyle{line} = [draw, -latex']
@@ -91,9 +92,77 @@
         \label{flo:read_string}
     \end{figure}
 
+    \clearpage
+
     All of the new routines are linear, simply reading from or writing to
     their respective register. According to the \textit{LPC2138 Education Board
     Users Guide}, the LEDs light when signals are pulled low. So sending a 1
     to them, with IOSET, turns them off, while sending a 0 to them, with IOCLR,
     turns them on.
+
+   \input{display_digit_flow}
+   \captionof{figure}{Flowchart of \textit{display\_digit} routine.}
+   \label{flo:display_digit}
+
+    As can be seen in Fig \ref{flo:display_digit}, a -1 can be sent to
+    \textit{display\_digit} so that the only action that is taken is clearing
+    the display, and then exit immediately. This way another routine wouldn't
+    have to be made specifically to clear the display. This leaves the entire
+    display control to the \textit{display\_digit} routine.
+
+   \input{read_push_btns_flow}
+   \captionof{figure}{Flowchart of \textit{read\_push\_btns} routine.}
+   \label{flo:read_push_btns}
+
+    For \textit{read\_push\_btns}, Fig. \ref{flo:read_push_btns} we don't wait
+    until a push button is read, it's sole purpose is to actually read the push
+    buttons. Of course it could be easily changed so that it does wait for a
+    push button to be pressed. In the grand scheme of things, it doesn't change
+    the functionality of the program.
+
+    \begin{minipage}{0.5\linewidth}
+        \input{leds_flow}
+        \captionof{figure}{Flowchart of \textit{leds} routine.}
+        \label{flo:leds}
+    \end{minipage}%
+    \begin{minipage}{0.5\linewidth}
+        \input{rgb_led_flow}
+        \captionof{figure}{Flowchart of \textit{rgb\_led} routine.}
+        \label{flo:rgb_led}
+    \end{minipage}
+
+    \begin{minipage}{\linewidth}
+        \input{main_flow_1}
+        \captionof{figure}{Flowchart of main program, \textit{lab4} routine.}
+        \label{flo:main 1}
+    \end{minipage}
+
+    \input{main_flow_2}
+    \captionof{figure}{Flowchart of main program, \textit{lab4} routine, continued.}
+    \label{flo:main 2}
+
+    It should be noted the source does differ from the flowchart in a minor way.
+    In Fig. \ref{flo:main 2}, there's a block stating that before exiting, the
+    display is turned off. This does not happen in the code that has been
+    submitted. However, two lines were added after submission to accomplish that,
+    As shown in Fig. \ref{code:added}. This was placed right after the lines to
+    turn the RGB LED red.
+
+    \begin{minipage}{\linewidth}
+        \begin{lstlisting}
+        mov r0, #-1
+        bl display_digit
+        \end{lstlisting}
+        \captionof{figure}{Code to clear display.}
+        \label{code:added}
+    \end{minipage}
+
+    Albert wrote the main routine, \textit{lab4}, along with the \textit{leds}
+    and \textit{rgb\_led} routines. Nipun wrote the \textit{display\_digit} and
+    \textit{read\_push\_btns} routines. Since the main routine is running
+    through an infinite loop anyway, it was decided having another loop in
+    \textit{read\_push\_btns} would be meaningless. So the main routine simply
+    polled the \textit{read\_push\_btns} routine. If no buttons were pushed, it
+    wouldn't wait around for the user to push a button.
+
 \end{document}

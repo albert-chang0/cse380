@@ -1,0 +1,33 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (uart) {Setup UART0};
+        \node[block, below of=uart] (iprompt) {Introduce user to program with instructions to push buttons};
+        \node[block, below of=iprompt] (gpio) {Enable GPIO for necessary pins};
+        \node[block, below of=gpio] (dir) {Specify input/output pins};
+        \node[block, below of=dir] (clear) {Turn off all LEDs};
+        \node[block, below of=clear] (green) {Turn RGB LED green};
+        \node[block, below of=green] (push) {Read push buttons};
+        \node[block, below of=push] (flag) {If only one push button has been pressed, flag it};
+        \node[block, below of=flag] (blue) {If any push button has been pressed, turn RGB LED blue};
+        \node[decision, below of=blue] (all) {Has each push button been pressed alone?};
+        \node[block, below of=all, node distance=3cm] (off) {Turn off LEDs near push buttons};
+        \node[block, below of=off] (white) {Turn RGB LED white to indicate next part};
+        \node[block, below of=white] (uprompt) {Prompt user to enter hexadecimal into PuTTY};
+        \path[line] (origin) -- (uart);
+        \path[line] (uart) -- (iprompt);
+        \path[line] (iprompt) -- (gpio);
+        \path[line] (gpio) -- (dir);
+        \path[line] (dir) -- (clear);
+        \path[line] (clear) -- (green);
+        \path[line] (green) -- (push);
+        \path[line] (push) -- (flag);
+        \path[line] (flag) -- (blue);
+        \path[line] (blue) -- (all);
+        \path[line] (all) -- node [near start] {yes} (off);
+        \path[line] (all) -| node [near start] {no} +(7,6) -- (push);
+        \path[line] (off) -- (white);
+        \path[line] (white) -- (uprompt);
+        \path[line, dashed] (uprompt) -- +(0,-1.5);
+    \end{tikzpicture}
+\end{center}
