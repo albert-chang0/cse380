@@ -60,8 +60,6 @@ lab5
         ldr r0, =prompt
         bl output_string
 
-;iloop   b iloop     ; infinite loop
-
         ldmfd sp!,{lr}
         bx lr
 
@@ -131,8 +129,6 @@ eint1
         tst r1, #2
         beq uart0                       ; not push button, check uart0
 
-        ;stmfd sp!, {r0-r12, lr}         ; Save registers 
-
         orr r1, r1, #2                  ; Clear Interrupt
         str r1, [r0]
 
@@ -144,10 +140,6 @@ eint1
         mrs r0, cpsr
         bic r0, r0, #0xc0
         msr cpsr_c, r0
-
-        ;ldmfd sp!, {r0-r12, lr}         ; Restore registers
-        ;ldmfd sp!, {r0-r12, lr}
-        ;subs pc, lr, #4
 
         ; uart0 input?
 uart0   ldr r0, =u0base
