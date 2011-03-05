@@ -125,10 +125,11 @@ FIQ_Handler
         stmfd sp!, {r0-r12, lr}         ; Save registers 
 
         ; push button?
-eint1   ldr r0, =extint
+eint1
+        ldr r0, =extint
         ldr r1, [r0]
         tst r1, #2
-        beq u0iir                       ; not push button, check uart0
+        beq uart0                       ; not push button, check uart0
 
         ;stmfd sp!, {r0-r12, lr}         ; Save registers 
 
@@ -140,22 +141,21 @@ eint1   ldr r0, =extint
 
         ; exits program
         ; don't allow any inputs/disable interrupts
-        ;mrs r0, cpsr
-        ;bic r0, r0, #0xc0
-        ;msr cpsr_c, r0
+        mrs r0, cpsr
+        bic r0, r0, #0xc0
+        msr cpsr_c, r0
 
         ;ldmfd sp!, {r0-r12, lr}         ; Restore registers
-        ;ldmfd sp!, {r0-r12, lr}         ; guess it wasn't the uart either...
-        ;subs pc, lr, #4                 ; exit FIQ
+        ;ldmfd sp!, {r0-r12, lr}
+        ;subs pc, lr, #4
 
         ; uart0 input?
-u0iir   ldr r0, =u0base
+uart0   ldr r0, =u0base
         ldr r1, [r0, #u0iir]
-        and r1, #1
-        cmp r1, #1                      ; no pending interrupts
+        tst r1, #1                      ; no pending interrupts
 
-        ldmfd sp!, {r0-r12, lr}         ; guess it wasn't the uart either...
-        subs pc, lr, #4                 ; exit FIQ
+        ldmnefd sp!, {r0-r12, lr}         ; guess it wasn't the uart either...
+        subnes pc, lr, #4                 ; exit FIQ
 
         bl read_character
 
