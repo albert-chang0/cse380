@@ -22,7 +22,8 @@ vicintenable equ 0x10       ; interrupt enable
 vicintselect equ 0xc        ; select fiq or irq
 
 prompt = "Welcome to Interrupt Test!",\
-         "Enter numbers and letters.",10,13,0
+         10,13,"Enter numbers and letters.",10,13,\
+         10,13,"Pushing the 5th push button turns off the display.",10,13,0
     align
 
 ; lab5
@@ -58,6 +59,8 @@ lab5
         ; prompt user
         ldr r0, =prompt
         bl output_string
+
+;iloop   b iloop     ; infinite loop
 
         ldmfd sp!,{lr}
         bx lr
@@ -101,7 +104,7 @@ interrupt_init
         ; UART0 interrupt on RX
         ldr r0, =u0base
         ldr r1, [r0, #u0ier]
-        orr r1, r1, #2_1                ; RBR interrupt enable
+        orr r1, r1, #1                  ; RBR interrupt enable
         str r1, [r0, #u0ier]
 
         ; Enable FIQ's, Disable IRQ's
@@ -121,27 +124,32 @@ interrupt_init
 FIQ_Handler
         stmfd sp!, {r0-r12, lr}         ; Save registers 
 
-EINT1                                   ; Check for EINT1 interrupt
-        ldr r0, =extint
+        ; push button?
+eint1   ldr r0, =extint
         ldr r1, [r0]
         tst r1, #2
-        beq fiq_exit
+        beq u0iir                       ; not push button, check uart0
 
-        stmfd sp!, {r0-r12, lr}         ; Save registers 
+        ;stmfd sp!, {r0-r12, lr}         ; Save registers 
+
+        orr r1, r1, #2                  ; Clear Interrupt
+        str r1, [r0]
 
         mov r0, #-1
         bl display_digit
 
-        ldmfd sp!, {r0-r12, lr}         ; Restore registers
+        ;ldmfd sp!, {r0-r12, lr}         ; Restore registers
+        ;ldmfd sp!, {r0-r12, lr}         ; guess it wasn't the uart either...
+        ;subs pc, lr, #4                 ; exit FIQ
 
-U0IIR                                   ; Check for U0IIR interrupt
-        ldr r0, =u0base
-        ldr r1, [r0, u0iir]
+        ; uart0 input?
+u0iir   ldr r0, =u0base
+        ldr r1, [r0, #u0iir]
         and r1, #1
         cmp r1, #1                      ; no pending interrupts
-        beq fiq_exit
 
-        stmfd sp!, {r0-r12, lr}
+        ldmfd sp!, {r0-r12, lr}         ; guess it wasn't the uart either...
+        subs pc, lr, #4                 ; exit FIQ
 
         bl read_character
 
@@ -175,7 +183,8 @@ U0IIR                                   ; Check for U0IIR interrupt
         subeq r1, r0, #87       ; valid input, convert to numbers 10-15
         beq valid
 
-        ldmfd sp!, {r0-r12, lr} ; ignore invalid input
+        ldmfd sp!, {r0-r12, lr}
+        subs pc, lr, #4         ; exit FIQ
 
 valid   bl output_character
         mov r0, #13
@@ -184,12 +193,6 @@ valid   bl output_character
         bl display_digit
 
         ldmfd sp!, {r0-r12, lr}
-
-        orr r1, r1, #2                  ; Clear Interrupt
-        str r1, [r0]
-
-fiq_exit
-        ldmfd sp!, {r0-r12, lr}
-        subs pc, lr, #4
+        subs pc, lr, #4         ; exit FIQ
 
     end
