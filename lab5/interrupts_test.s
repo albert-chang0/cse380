@@ -138,6 +138,12 @@ eint1   ldr r0, =extint
         mov r0, #-1
         bl display_digit
 
+        ; exits program
+        ; don't allow any inputs/disable interrupts
+        ;mrs r0, cpsr
+        ;bic r0, r0, #0xc0
+        ;msr cpsr_c, r0
+
         ;ldmfd sp!, {r0-r12, lr}         ; Restore registers
         ;ldmfd sp!, {r0-r12, lr}         ; guess it wasn't the uart either...
         ;subs pc, lr, #4                 ; exit FIQ
