@@ -193,6 +193,10 @@ exit    bl output_character
         mov r0, #0x2
         bl rgb_led
 
+        ; turn off display
+        mov r0, #-1
+        bl display_digit
+
         ldmfd sp!, {lr} ; Restore register lr from stack    
         bx lr
 
