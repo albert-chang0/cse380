@@ -1,0 +1,115 @@
+\documentclass[letterpaper,10pt]{article}
+
+\usepackage{color}
+\usepackage{tikz}
+\usepackage{caption}
+
+\setlength{\headheight}{0in}
+\setlength{\marginparsep}{0in}
+\setlength{\footskip}{0in}
+\setlength{\headsep}{0in}
+\setlength{\marginparwidth}{0in}
+\setlength{\marginparpush}{0in}
+\setlength{\voffset}{0in}
+\setlength{\hoffset}{-1in}
+\setlength{\voffset}{-1in}
+\setlength{\oddsidemargin}{0.75in}
+\setlength{\evensidemargin}{0.75in}
+\setlength{\topmargin}{0.75in}
+\setlength{\textheight}{9.5in}
+\setlength{\textwidth}{7in}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{10pt} %change this to match font size
+
+\pagestyle{empty}
+\definecolor{gray}{gray}{0.75}
+\usetikzlibrary{shapes,arrows,calc}
+
+% define block styles
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{block} = [draw, rectangle, text centered, minimum height=2em]
+\tikzstyle{mlblock} = [draw, rectangle, text width=10em, text centered, minimum height=2em]
+\tikzstyle{decision} = [draw, diamond, text width=4.5em, text centered, node distance=3cm, inner sep=0pt]
+\tikzstyle{cloud} = [draw, rectangle, text centered, rounded corners, minimum height=2em]
+
+\begin{document}
+    Albert Chang and Nipun Chopra\\
+    CSE-380 A6\\
+    University at Buffalo\\
+    Dr. Kris Schindler\\
+    March 22, 2011\\
+    \textit{Lab 6 Documentation}
+
+    The objective of Lab 6 was to learn how to use the 32-bit timer. A curses-like
+    environment is output to the terminal, with an asterisk bouncing back and
+    forth. With the keyboard, the user can adjust the speed and direction of
+    the asterisk. All of this is accomplished with interrupts.
+
+    The following routines were imported through the \textit{library.s} file:
+    \textit{uart\_init}, \textit{output\_character}, \textit{read\_character},
+    and \textit{output\_string}. Figs. \ref{flo:uart_init},
+    \ref{flo:io_char}, and \ref{flo:output_string} are their respective
+    flowcharts for each routine.
+
+    \begin{figure}[h]
+        \input{uart_init_flow}
+        \caption{Flowchart of \textit{uart\_init} routine.}
+        \label{flo:uart_init}
+    \end{figure}
+
+    \begin{figure}[h]
+        \begin{minipage}{0.5\linewidth}
+            \input{output_char_flow}
+        \end{minipage}%
+        \begin{minipage}{0.5\linewidth}
+            \input{read_char_flow}
+        \end{minipage}
+        \caption{Flowcharts of \textit{output\_character} (left) and \textit{read\_character} (right) routines.}
+        \label{flo:io_char}
+    \end{figure}
+
+    \begin{figure}[h]
+        \input{output_string_flow}
+        \caption{Flowchart of \textit{output\_string} routine.}
+        \label{flo:output_string}
+    \end{figure}
+
+    \clearpage
+
+    Just as with the previous lab, the main routine, \textit{lab6}, doesn't do
+    much besides call upon the initialization routines, \textit{uart\_init} and
+    \textit{interrupt\_init}. Afterwards it sets up the initial speed of the
+    asterisk, provides the initial output, and starts the timer. The output is
+    only changed when something has changed, instead of every cycle. Changes
+    are only made when the timer count register matches the match register.
+
+    \begin{minipage}{\linewidth}
+        \input{main_flow}
+        \captionof{figure}{Flowchart of \textit{lab6} routine.}
+        \label{flo:main}
+    \end{minipage}
+
+    The \textit{interrupt\_init} routine is similar to the previous lab's,
+    except instead of enabling and configuring the external interrupt, it
+    enables and configures timer interrupt.
+
+    \begin{minipage}{\linewidth}
+        \input{interrupt_init_flow}
+        \captionof{figure}{Flowchart of \textit{interrupt\_init} routine.}
+        \label{flo:interrupt_init}
+    \end{minipage}
+
+    Again, the bulk of the program is handled by the fast interrupt handler,
+    \textit{FIQ\_Handler}. Depending on which kind of interrupt it is, it takes
+    the appropriate action.
+
+    \begin{minipage}{\linewidth}
+        \input{fiq_handler_flow}
+        \captionof{figure}{Flowchart of \textit{FIQ\_Handler} routine.}
+        \label{flo:fiq_handler}
+    \end{minipage}
+
+    There wasn't really a clear distribution of labor. It was all programmed in
+    one lab session via pair programming.
+
+\end{document}

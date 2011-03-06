@@ -1,0 +1,17 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (classify) {Classify UART0 and TIMER0 as fast interrupts};
+        \node[block, below of=classify] (enable) {Enable interrupts};
+        \node[block, below of=enable] (uart) {Setup UART0 interrupt on RBR fill};
+        \node[block, below of=uart] (timer) {Setup TCR to match MR1};
+        \node[block, below of=timer] (fiq) {Enable fast interrupts, disable normal interrupts};
+        \node[cloud, below of=fiq] (stop) {Stop};
+        \path[line] (origin) -- (classify);
+        \path[line] (classify) -- (enable);
+        \path[line] (enable) -- (uart);
+        \path[line] (uart) -- (timer);
+        \path[line] (timer) -- (fiq);
+        \path[line] (fiq) -- (stop);
+    \end{tikzpicture}
+\end{center}

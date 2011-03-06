@@ -1,0 +1,12 @@
+\begin{center}
+    \begin{tikzpicture}[node distance = 1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[decision, below of=origin] (test) {Test RDR in status register};
+        \node[block, below of=test, node distance = 3.5cm] (read) {Read byte from receive register};
+        \node[cloud, below of=read] (stop) {Stop};
+        \path[line] (origin) -- (test);
+        \path[line] (test) -- node [near start] {1} (read);
+        \path[line] (test) -| node [near start] {0} +(3,2) -- +(0,2);
+        \path[line] (read) -- (stop);
+    \end{tikzpicture}
+\end{center}

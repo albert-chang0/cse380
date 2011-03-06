@@ -1,0 +1,17 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (uart) {Initialize UART0};
+        \node[block, below of=uart] (interrupt) {Initialize interrupts};
+        \node[block, below of=interrupt] (speed) {Setup initial speed};
+        \node[block, below of=speed] (output) {Initial output};
+        \node[block, below of=output] (time) {Start timer};
+        \node[cloud, below of=time] (stop) {Stop};
+        \path[line] (origin) -- (uart);
+        \path[line] (uart) -- (interrupt);
+        \path[line] (interrupt) -- (speed);
+        \path[line] (speed) -- (output);
+        \path[line] (output) -- (time);
+        \path[line] (time) -- (stop);
+    \end{tikzpicture}
+\end{center}

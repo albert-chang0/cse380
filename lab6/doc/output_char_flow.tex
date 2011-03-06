@@ -1,0 +1,12 @@
+\begin{center}
+    \begin{tikzpicture}[node distance = 1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[decision, below of=origin] (test) {Test THRE in status register};
+        \node[block, below of=test, node distance = 3.5cm] (store) {Store byte in transmit register};
+        \node[cloud, below of=store] (stop) {Stop};
+        \path[line] (origin) -- (test);
+        \path[line] (test) -- node [near start] {1} (store);
+        \path[line] (test) -| node [near start] {0} +(3,2.25) -- +(0,2.25);
+        \path[line] (store) -- (stop);
+    \end{tikzpicture}
+\end{center}

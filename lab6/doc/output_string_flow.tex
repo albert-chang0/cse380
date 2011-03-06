@@ -1,0 +1,14 @@
+\begin{center}
+    \begin{tikzpicture}[node distance = 1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (read) {Load byte from memory};
+        \node[decision, below of=read] (null) {Is it the null character?};
+        \node[block, right of=null, node distance=5cm] (output) {Output character};
+        \node[cloud, below of=null, node distance=3cm] (stop) {Stop};
+        \path[line] (origin) -- (read);
+        \path[line] (read) -- (null);
+        \path[line] (null) -- node [near start] {no} (output);
+        \path[line] (output) |- (read);
+        \path[line] (null) -- node [near start] {yes} (stop);
+    \end{tikzpicture}
+\end{center}
