@@ -36,6 +36,11 @@ lab6
         bl uart_init
         bl interrupt_init
 
+        ; initial speed of ~1char/s
+        ;ldr r0, =timer0
+        ;ldr r1, =0x2dc6c0
+        ;str r1, [r0, #mr1]
+
         ldr r0, =prompt
         bl output_string
 
