@@ -29,7 +29,20 @@ prompt = "Welcome to ARM curses test.",10,13,\
          "+/- adjusts speed by a factor of 2",10,13,\
          "h/l changes direction",10,13,10,13,0
     align
-
+; lab6
+; parameters: none
+; returns: none
+;
+; Provides a GUI-like environment for the terminal, similar to what the MIT
+; curses library does and pcurses or ncurses. An asterisk bounces back and
+; forth. It accepts 4 keystrokes:
+; +: doubles speed
+; -: halves speed
+; h: move in the left direction
+; l: move in the right direction
+; It uses two interrupts: timer and uart. After a certain amount of time, the
+; display is updated, and when a keystroke is entered, it takes the appropriate
+; action.
 lab6
         stmfd sp!,{lr}  ; Store register lr on stack
 
@@ -53,6 +66,7 @@ lab6
         ldr r0, =t_b_box
         bl output_string
 
+        ; start timer
         ldr r0, =timer0
         mov r1, #3
         str r1, [r0, #tcr]
@@ -60,6 +74,12 @@ lab6
         ldmfd sp!, {lr} ; Restore register lr from stack    
         bx lr       
 
+; interrupt_init
+; parameters: none
+; returns: none
+;
+; Sets up the necessary interrupts: timer and uart. Classifies them as fast
+; interrupt for convenience.
 interrupt_init
         stmfd sp!, {r0, r1, lr}
 
@@ -95,6 +115,15 @@ interrupt_init
         ldmfd sp!, {r0, r1, lr}
         bx lr
 
+; FIQ_Handler
+; parameters: none
+; returns: none
+;
+; Fast interrupt handler. Checks what caused the interrupt. If it's the timer,
+; it's time to update the output. If it's the uart, see what the user wants to
+; do. When updating the output, also check to see if the direction needs to be
+; changed (when it reaches the end of the box). Position and direction are
+; stored into RAM.
 FIQ_Handler
         stmfd sp!, {r0-r12, lr}
 
@@ -174,6 +203,7 @@ uart0   ldr r0, =u0base
 
         bl read_character
 
+        ; get speed
         ldr r1, =timer0
         ldr r2, [r1, #mr1]
 
@@ -189,7 +219,7 @@ uart0   ldr r0, =u0base
         str r2, [r1, #mr1]
 
         ldr r1, =dir
-        ldr r2, [r1]                ; in the event direction doesn't get changed
+        ldr r2, [r1]                ; fallback: same direction
 
         ; 'h' - left direction
         cmp r0, #104
@@ -199,6 +229,7 @@ uart0   ldr r0, =u0base
         cmp r0, #108
         mvneq r2, #0
 
+        ; change direction
         str r2, [r1]
 
         ldmfd sp!, {r0-r12, lr}
