@@ -148,7 +148,7 @@ uart0   ldr r0, =u0base
         ldr r1, [r0, #u0iir]
         tst r1, #1                      ; no pending interrupts
 
-        ldmnefd sp!, {r0-r12, lr}       ; guess it wasn't the uart either...
+        ldmnefd sp!, {r0-r12, lr}
         subnes pc, lr, #4               ; exit FIQ
 
         bl read_character
