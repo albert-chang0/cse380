@@ -72,7 +72,8 @@ lab5
 ; returns: none
 ;
 ; Enables and configures fast interrupts, disables normal interrupt.
-; Uses external interrupt 1 and classifies it as a fast interrupt.
+; External interrupt 1 is for the push button. Classify external interrupt
+; and UART as fast interrupts. Listen for read buffer register for UART interrupt.
 interrupt_init       
         stmfd sp!, {r0, r1, lr}         ; Save registers 
 
@@ -108,7 +109,7 @@ interrupt_init
         orr r1, r1, #1                  ; RBR interrupt enable
         str r1, [r0, #u0ier]
 
-        ; Enable FIQ's, Disable IRQ's
+        ; enable FIQ's, disable IRQ's
         mrs r0, cpsr
         bic r0, r0, #0x40
         orr r0, r0, #0x80
@@ -121,7 +122,10 @@ interrupt_init
 ; parameters: none
 ; returns: none
 ;
-; Fast interrupt handler
+; Fast interrupt handler. Checks what caused the interrupt. If it was the push
+; button, clear the display and disable interrupts. If it was from the UART,
+; validate user input. If it's valid, replace character in terminal and update
+; 7-segment display.
 FIQ_Handler
         stmfd sp!, {r0-r12, lr}         ; Save registers 
 
@@ -131,9 +135,11 @@ FIQ_Handler
         tst r1, #2
         beq uart0                       ; not push button, check uart0
 
-        orr r1, r1, #2                  ; Clear Interrupt
+        ; clear external interrupt
+        orr r1, r1, #2
         str r1, [r0]
 
+        ; clear display
         mov r0, #-1
         bl display_digit
 
@@ -186,6 +192,8 @@ uart0   ldr r0, =u0base
         ldmfd sp!, {r0-r12, lr}
         subs pc, lr, #4         ; exit FIQ
 
+        ; valid - replace previous character
+        ; and update display
 valid   bl output_character
         mov r0, #13
         bl output_character
