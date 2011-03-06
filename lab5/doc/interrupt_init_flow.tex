@@ -1,0 +1,19 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (gpio) {Enable push button};
+        \node[block, below of=gpio] (classify) {Classify push button and UART0 as FIQ};
+        \node[block, below of=classify] (enable) {Enable interrupts};
+        \node[block, below of=enable] (edge) {Setup up external interrupt 1 as edge sensitive};
+        \node[block, below of=edge] (uart) {Setup UART0 interrupt on RBR fill};
+        \node[block, below of=uart] (fiq) {Enable fast interrupts, disable normal interrupts};
+        \node[cloud, below of=fiq] (stop) {Stop};
+        \path[line] (origin) -- (gpio);
+        \path[line] (gpio) -- (classify);
+        \path[line] (classify) -- (enable);
+        \path[line] (enable) -- (edge);
+        \path[line] (edge) -- (uart);
+        \path[line] (uart) -- (fiq);
+        \path[line] (fiq) -- (stop);
+    \end{tikzpicture}
+\end{center}

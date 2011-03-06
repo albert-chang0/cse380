@@ -1,0 +1,25 @@
+\begin{center}
+    \begin{tikzpicture}[node distance = 3cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin, node distance=1.5cm] (enable) {Write 0x5 to PINSEL0 to enable UART0};
+        \node[mlblock, below of=enable] (init) {Configure U0LCR:\\%
+                                                8-bit word length\\%
+                                                1 stop bit\\%
+                                                no parity\\%
+                                                disable break control\\%
+                                                enable access latch};
+        \node[block, below of=init] (baud) {Set baud rate to 9600};
+        \node[mlblock, below of=baud] (conf) {Configure U0LCR:\\%
+                                                8-bit word length\\%
+                                                1 stop bit\\%
+                                                no parity\\%
+                                                disable break control\\%
+                                                disable latch access};
+        \node[cloud, below of=conf] (stop) {Stop};
+        \path[line] (origin) -- (enable);
+        \path[line] (enable) -- (init);
+        \path[line] (init) -- (baud);
+        \path[line] (baud) -- (conf);
+        \path[line] (conf) -- (stop);
+    \end{tikzpicture}
+\end{center}

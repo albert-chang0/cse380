@@ -1,0 +1,122 @@
+\documentclass[letterpaper,10pt]{article}
+
+\usepackage{color}
+\usepackage{tikz}
+\usepackage{caption}
+
+\setlength{\headheight}{0in}
+\setlength{\marginparsep}{0in}
+\setlength{\footskip}{0in}
+\setlength{\headsep}{0in}
+\setlength{\marginparwidth}{0in}
+\setlength{\marginparpush}{0in}
+\setlength{\voffset}{0in}
+\setlength{\hoffset}{-1in}
+\setlength{\voffset}{-1in}
+\setlength{\oddsidemargin}{0.75in}
+\setlength{\evensidemargin}{0.75in}
+\setlength{\topmargin}{0.75in}
+\setlength{\textheight}{9.5in}
+\setlength{\textwidth}{7in}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{10pt} %change this to match font size
+
+\pagestyle{empty}
+\definecolor{gray}{gray}{0.75}
+\usetikzlibrary{shapes,arrows,calc}
+
+% define block styles
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{block} = [draw, rectangle, text centered, minimum height=2em]
+\tikzstyle{mlblock} = [draw, rectangle, text width=10em, text centered, minimum height=2em]
+\tikzstyle{decision} = [draw, diamond, text width=4.5em, text centered, node distance=3cm, inner sep=0pt]
+\tikzstyle{cloud} = [draw, rectangle, text centered, rounded corners, minimum height=2em]
+
+\begin{document}
+    Albert Chang and Nipun Chopra\\
+    CSE-380 A6\\
+    University at Buffalo\\
+    Dr. Kris Schindler\\
+    March 8, 2011\\
+    \textit{Lab 5 Documentation}
+
+    The objective of Lab 5 was to learn how to use interrupts. The main program
+    doesn't really do anything except initialize everything and prompts the user.
+    However, with interrupts, the user can enter hexadecimals into the terminal.
+    When a valid input is entered, the 7-segment display shows the hexadecimal.
+    The user can also push a button to clear the 7-segment display, again
+    implemented with an interrupt.
+
+    From the \textit{library.s} file, we imported the following routines:
+    \textit{uart\_init}, \textit{output\_character}, \textit{read\_character},
+    \textit{output\_string}, and \textit{display\_digit}. Their flowcharts are
+    shown in Figs. \ref{flo:uart_init}, \ref{flo:io_character},
+    \ref{flo:output_string}, and \ref{flo:display_digit}.
+
+    \begin{figure}[h]
+        \input{uart_init_flow}
+        \caption{Flowchart of \textit{uart\_init} routine.}
+        \label{flo:uart_init}
+    \end{figure}
+
+    \begin{figure}[h]
+        \begin{minipage}{0.5\linewidth}
+            \input{output_char_flow}
+        \end{minipage}%
+        \begin{minipage}{0.5\linewidth}
+            \input{read_char_flow}
+        \end{minipage}
+        \caption{Flowcharts of \textit{output\_character} (left) and \textit{read\_character} (right) routines.}
+        \label{flo:io_character}
+    \end{figure}
+
+    \begin{figure}[h]
+        \input{output_string_flow}
+        \caption{Flowchart of \textit{output\_string} routine.}
+        \label{flo:output_string}
+    \end{figure}
+
+    \begin{figure}[h]
+        \input{display_digit_flow}
+        \caption{Flowchart of \textit{display\_digit} routine.}
+        \label{flo:display_digit}
+    \end{figure}
+
+    \clearpage
+
+    The main routine, \textit{lab5} simply calls upon the initialization routines,
+    \textit{uart\_init} and \textit{interrupt\_init}, sets up the GPIO, and
+    prompts user. After that, it exits. From here on out, everything is handled
+    by interrupts. Since even after exiting the program, the microcontroller is
+    still running, and can process interrupts, an infinite loop is not necessary.
+
+    \begin{minipage}{\linewidth}
+        \input{main_flow}
+        \captionof{figure}{Flowchart of \textit{lab5} routine.}
+        \label{flo:main}
+    \end{minipage}
+
+    The \textit{interrupt\_init} routine sets up all interrupts, which include
+    the UART0 interrupt and EINT1 interrupt. For convenience, they are
+    classified as fast interrupts. Fig. \ref{flo:interrupt_init} shows how the
+    program works.
+
+    \begin{figure}[p]
+        \input{interrupt_init_flow}
+        \caption{Flowchart of \textit{interrupt\_init} routine.}
+        \label{flo:interrupt_init}
+    \end{figure}
+
+    Finally, the interrupt handler, \textit{FIQ\_Handler}, makes up the bulk of
+    the code. Nothing is done until there is something to do.
+
+    \begin{minipage}{\linewidth}
+        \input{fiq_handler_flow}
+        \captionof{figure}{Flowchart of \textit{FIQ\_Handler} routine.}
+        \label{flo:fiq_handler}
+    \end{minipage}
+
+    There wasn't really a clear distribution of labor, it was programmed in one
+    lab session via pair programming.
+
+\end{document}

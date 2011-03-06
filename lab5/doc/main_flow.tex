@@ -1,0 +1,17 @@
+\begin{center}
+    \begin{tikzpicture}{node distance=1.5cm, auto}
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (uart) {Setup UART0};
+        \node[block, below of=uart] (interrupt) {Setup interrupts};
+        \node[block, below of=interrupt] (gpio) {Setup GPIO (7-segment display)};
+        \node[block, below of=gpio] (clear) {Clear any previous terminal output};
+        \node[block, below of=clear] (prompt) {Prompt user with instructions};
+        \node[cloud, below of=prompt] (stop) {Stop};
+        \path[line] (origin) -- (uart);
+        \path[line] (uart) -- (interrupt);
+        \path[line] (interrupt) -- (gpio);
+        \path[line] (gpio) -- (clear);
+        \path[line] (clear) -- (prompt);
+        \path[line] (prompt) -- (stop);
+    \end{tikzpicture}
+\end{center}
