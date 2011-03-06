@@ -23,7 +23,7 @@ mr1 equ 0x1c
 
 t_b_box = "+--------------------+",10,13,0
 pos = 1
-dir = 1
+dir = 0
 fill = "|*                   |",10,13,0
 prompt = "Welcome to ARM curses test.",10,13,\
          "+/- adjusts speed by a factor of 2",10,13,\
@@ -50,9 +50,9 @@ lab6
         bl interrupt_init
 
         ; initial speed of ~1char/s
-        ;ldr r0, =timer0
-        ;ldr r1, =0x2dc6c0
-        ;str r1, [r0, #mr1]
+        ldr r0, =timer0
+        ldr r1, =0x2dc6c0
+        str r1, [r0, #mr1]
 
         ldr r0, =prompt
         bl output_string
@@ -137,6 +137,15 @@ FIQ_Handler
         orr r1, r1, #2
         str r1, [r0, #tir]
 
+        ; get direction
+        ldr r2, =dir
+        ldrsb r4, [r2]
+
+        ; if direction is 0, already up-to-date
+        ; do nothing
+        cmp r4, #0
+        beq reset
+
         mov r0, #12
         bl output_character
 
@@ -159,10 +168,6 @@ FIQ_Handler
         ldr r1, =pos
         ldrb r3, [r1]
 
-        ; get direction
-        ldr r2, =dir
-        ldrsb r4, [r2]
-
         ; replace old position with a space
         mov r5, #32
         strb r5, [r0, r3]
@@ -180,17 +185,17 @@ FIQ_Handler
         mov r5, #42
         strb r5, [r0, r3]
 
+        ; save position and direction
+        strb r3, [r1]
+        strb r4, [r2]
+
         bl output_string
 
         ldr r0, =t_b_box
         bl output_string
 
-        ; save position and direction
-        strb r3, [r1]
-        strb r4, [r2]
-
         ; reset count and enable clock
-        ldr r0, =timer0
+reset   ldr r0, =timer0
         mov r1, #3
         str r1, [r0, #tcr]
 
@@ -215,11 +220,17 @@ uart0   ldr r0, =u0base
         cmp r0, #45
         lsleq r2, #1
 
+        ; ' ' - pause/restart
+        cmp r0, #32
+        ldr r2, =0x2dc6c0
+
         ; change speed
         str r2, [r1, #mr1]
 
         ldr r1, =dir
         ldr r2, [r1]                ; fallback: same direction
+
+        moveq r2, #0
 
         ; 'h' - left direction
         cmp r0, #104
