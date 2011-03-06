@@ -23,7 +23,7 @@ mr1 equ 0x1c
 
 t_b_box = "+--------------------+",10,13,0
 pos = 1
-dir = 2
+dir = 1
 fill = "|*                   |",10,13,0
 prompt = "Welcome to ARM curses test.",10,13,\
          "+/- adjusts speed by a factor of 2",10,13,\
@@ -127,7 +127,7 @@ FIQ_Handler
 
         ; get direction
         ldr r2, =dir
-        ldrb r4, [r2]
+        ldrsb r4, [r2]
 
         ; replace old position with a space
         mov r5, #32
@@ -135,15 +135,14 @@ FIQ_Handler
 
         ; if at the beginning, switch to positive direction
         cmp r3, #1
-        moveq r4, #2
+        moveq r4, #1
 
         ; if at the end, switch to negative direction
         cmp r3, #20
-        moveq r4, #0
+        mvneq r4, #0
 
         ; update position
-        sub r5, r4, #1
-        add r3, r3, r5
+        add r3, r3, r4
         mov r5, #42
         strb r5, [r0, r3]
 
@@ -189,11 +188,11 @@ uart0   ldr r0, =u0base
 
         ; 'h' - left direction
         cmp r0, #104
-        moveq r2, #0
+        moveq r2, #1
 
         ; 'l' - right direction
         cmp r0, #108
-        moveq r2, #2
+        mvneq r2, #0
 
         str r2, [r1]
 
