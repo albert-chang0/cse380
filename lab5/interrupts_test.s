@@ -20,10 +20,13 @@ extmode equ 0x8             ; external interrupt mode control
 vicbaseaddr equ 0xfffff000  ; vic base address
 vicintenable equ 0x10       ; interrupt enable
 vicintselect equ 0xc        ; select fiq or irq
+vicintenclr equ 0x14        ; vic interrupt clear register
 
 prompt = "Welcome to Interrupt Test!",\
-         10,13,"Enter numbers and letters.",10,13,\
-         10,13,"Pushing the 5th push button turns off the display.",10,13,0
+         10,13,"Enter numbers and letters.",\
+         10,13,"Pushing the 5th push button turns off the display.",\
+         10,13,"Pushing q/Q exits the program.",10,13,0
+exitmsg = 10,13,"Exiting. Bye!",0
     align
 
 ; lab5
@@ -143,12 +146,6 @@ FIQ_Handler
         mov r0, #-1
         bl display_digit
 
-        ; exits program
-        ; don't allow any inputs/disable interrupts
-        mrs r0, cpsr
-        bic r0, r0, #0xc0
-        msr cpsr_c, r0
-
         ; uart0 input?
 uart0   ldr r0, =u0base
         ldr r1, [r0, #u0iir]
@@ -188,6 +185,16 @@ uart0   ldr r0, =u0base
         cmp r1, #2
         subeq r1, r0, #87       ; valid input, convert to numbers 10-15
         beq valid
+
+        ; q|Q
+        ; quits program (disables interrupts)
+        ldr r2, =vicbaseaddr
+        ldr r1, [r2, #vicintenable]
+        cmp r0, #81
+        cmpne r0, #113
+        streq r1, [r2, #vicintenclr]
+        ldr r0, =exitmsg
+        bleq output_string
 
         ldmfd sp!, {r0-r12, lr}
         subs pc, lr, #4         ; exit FIQ
