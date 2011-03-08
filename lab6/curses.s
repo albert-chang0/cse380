@@ -29,6 +29,7 @@ prompt = "Welcome to ARM curses test.",10,13,\
          "+/- adjusts speed by a factor of 2",10,13,\
          "h/l changes direction",10,13,10,13,0
     align
+
 ; lab6
 ; parameters: none
 ; returns: none
@@ -38,8 +39,9 @@ prompt = "Welcome to ARM curses test.",10,13,\
 ; forth. It accepts 4 keystrokes:
 ; +: doubles speed
 ; -: halves speed
-; h: move in the left direction
-; l: move in the right direction
+; h/H: move in the left direction
+; l/L: move in the right direction
+; q/Q: quit
 ; It uses two interrupts: timer and uart. After a certain amount of time, the
 ; display is updated, and when a keystroke is entered, it takes the appropriate
 ; action.
@@ -222,7 +224,7 @@ uart0   ldr r0, =u0base
 
         ; ' ' - pause/restart
         cmp r0, #32
-        ldr r2, =0x2dc6c0
+        ldreq r2, =0x2dc6c0
 
         ; change speed
         str r2, [r1, #mr1]
@@ -232,12 +234,14 @@ uart0   ldr r0, =u0base
 
         moveq r2, #0
 
-        ; 'h' - left direction
+        ; 'h' or 'H' - left direction
         cmp r0, #104
+        cmpne r0, #72
         moveq r2, #1
 
-        ; 'l' - right direction
+        ; 'l' or 'L' - right direction
         cmp r0, #108
+        cmpne r0, #76
         mvneq r2, #0
 
         ; change direction
