@@ -24,8 +24,8 @@ vicintenclr equ 0x14        ; vic interrupt clear register
 
 prompt = "Welcome to Interrupt Test!",\
          10,13,"Enter numbers and letters.",\
-         10,13,"Pushing the 5th push button turns off the display.",\
-         10,13,"Pushing q/Q exits the program.",10,13,0
+         10,13,"Push the 5th push button to turn off the display.",\
+         10,13,"Push q/Q to exit the program.",10,13,0
 exitmsg = 10,13,"Exiting. Bye!",0
     align
 
