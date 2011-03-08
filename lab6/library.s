@@ -16,11 +16,8 @@ u0lcr equ 0xc               ; UART0 line control register
 u0dlm equ 0x4               ; UART0 divisor latch MSB register
                             ; UART0 divisor latch LSB register has no offset
 iobase equ 0xe0028000
-io0dir equ 0x8
-io0pin equ 0x0
 io0clr equ 0xc
 io0set equ 0x4
-io1dir equ 0x18
 io1pin equ 0x10
 io1clr equ 0x1c
 io1set equ 0x14
