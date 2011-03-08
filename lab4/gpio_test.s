@@ -166,8 +166,7 @@ iloop   bl read_character
 
         ; Q|q
         cmp r0, #81
-        beq exit
-        cmp r0, #113
+        cmpne r0, #113
         beq exit
 
         ldr r0, =eprompt
