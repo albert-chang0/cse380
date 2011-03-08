@@ -1,28 +1,33 @@
 \begin{center}
-    \begin{tikzpicture}[node distance=1.5cm, auto]
+    \begin{tikzpicture}[node distance=1.25cm, auto]
         \node[cloud] (origin) {Start};
         \node[decision, below of=origin] (btns) {Was the interrupt caused by push button?};
         \node[block, below of=btns, node distance=3cm] (cleari) {Clear interrupt};
         \node[block, below of=cleari] (cleard) {Clear display};
-        \node[block, below of=cleard] (exit) {Disable interrupts};
-        \node[decision, below of=exit] (uart) {Was the interrupt caused by UART?};
-        \node[block, below of=uart, node distance=3cm] (input) {Read input};
+        \node[decision, below of=cleard, node distance=2.5cm] (uart) {Was the interrupt caused by UART?};
+        \node[block, below of=uart, node distance=2.5cm] (input) {Read input};
         \node[decision, below of=input] (valid) {Was the input valid?};
-        \node[block, below of=valid, node distance=3cm] (output) {Replace previous character};
+        \node[decision, below of=valid, node distance=3.5cm] (quit) {Did the user press q or Q?};
+        \node[block, right of=quit, node distance=4.5cm] (disable) {Disable interrupts};
+        \node[block, below of=disable, node distance=2cm] (emsg) {Output exit message};
+        \node[block, below of=quit, node distance=2.5cm] (output) {Replace previous character};
         \node[block, below of=output] (display) {Update 7-segment display};
         \node[cloud, below of=display] (stop) {Stop};
         \path[line] (origin) -- (btns);
         \path[line] (btns) -- node [near start] {yes} (cleari);
-        \path[line] (btns) -| node [near start] {no} +(3,-9) -- (uart);
+        \path[line] (btns) -| node [near start] {no} +(3,-6.75) -- (uart);
         \path[line] (cleari) -- (cleard);
-        \path[line] (cleard) -- (exit);
-        \path[line] (exit) -- (uart);
+        \path[line] (cleard) -- (uart);
         \path[line] (uart) -- node [near start] {yes} (input);
         \path[line] (input) -- (valid);
-        \path[line] (valid) -- node [near start] {yes} (output);
+        \path[line] (valid) -- node [near start] {yes} (quit);
+        \path[line] (quit) -- node [near start] {no} (output);
         \path[line] (output) -- (display);
         \path[line] (display) -- (stop);
-        \path[line] (uart) -| node [near start] {no} +(-4.5,-12) -- (stop);
+        \path[line] (uart) -| node [near start] {no} +(-4.5,-14) -- (stop);
+        \path[line] (quit) -- node [near start] {yes} (disable);
+        \path[line] (disable) -- (emsg);
+        \path[line] (emsg) |- (stop);
         \draw (valid) -- node [near start] {no} +(-4.5,0);
     \end{tikzpicture}
 \end{center}
