@@ -14,7 +14,7 @@ u0base equ 0xe000c000       ; UART0 base address
 u0lsr equ 0x14              ; UART0 line status register
 u0lcr equ 0xc               ; UART0 line control register
 u0dlm equ 0x4               ; UART0 divisor latch MSB register
-                            ; UART0 divisor latch LSB register has no offset
+u0dll equ 0x0               ; UART0 divisor latch LSB register has no offset
 iobase equ 0xe0028000
 io0clr equ 0xc
 io0set equ 0x4
@@ -68,7 +68,7 @@ uart_init
 
         ; 9600 baud rate:
         mov r0, #0x78
-        strb r0, [r1]
+        strb r0, [r1, #u0dll]
         mov r0, #0
         strb r0, [r1, #u0dlm]
 
