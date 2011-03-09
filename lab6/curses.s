@@ -243,13 +243,6 @@ uart0   ldr r0, =u0base
         ; store speed information to memory
         str r3, [r4]
 
-        ; reset and start timer and counter
-        ;ldr r1, =timer0
-        ;mov r0, #2
-        ;str r0, [r1, #tcr]
-        ;mov r0, #1
-        ;str r0, [r1, #tcr]
-
         ; start timer and counter
         ldr r1, =timer0
         mov r0, #1
