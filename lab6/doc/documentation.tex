@@ -42,14 +42,16 @@
 
     The objective of Lab 6 was to learn how to use the 32-bit timer. A curses-like
     environment is output to the terminal, with an asterisk bouncing back and
-    forth. With the keyboard, the user can adjust the speed and direction of
-    the asterisk. All of this is accomplished with interrupts.
+    forth. With the keyboard, the user can adjust the speed of the asterisk, and
+    can pause it. All of this is accomplished with interrupts.
 
     The following routines were imported through the \textit{library.s} file:
     \textit{uart\_init}, \textit{output\_character}, \textit{read\_character},
     and \textit{output\_string}. Figs. \ref{flo:uart_init},
     \ref{flo:io_char}, and \ref{flo:output_string} are their respective
-    flowcharts for each routine.
+    flowcharts for each routine. The only change to \textit{uart\_init} was to
+    set the baud rate to 1152000 so there wouldn't be any flickering when it
+    refreshed. It still flickers when the asterisk is moving too fast.
 
     \begin{figure}[h]
         \input{uart_init_flow}
@@ -103,8 +105,10 @@
     \textit{FIQ\_Handler}. Depending on which kind of interrupt it is, it takes
     the appropriate action.
 
+    \input{fiq_handler_flow_1}
+
     \begin{minipage}{\linewidth}
-        \input{fiq_handler_flow}
+        \input{fiq_handler_flow_2}
         \captionof{figure}{Flowchart of \textit{FIQ\_Handler} routine.}
         \label{flo:fiq_handler}
     \end{minipage}

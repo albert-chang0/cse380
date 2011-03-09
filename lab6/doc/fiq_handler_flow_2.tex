@@ -1,0 +1,31 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[decision] (paused) {Was the spacebar hit?};
+        \node[block] at +(-4.5,-3) (rst) {Reset and stop timer counter};
+        \node[block, below of=rst] (get) {Get Speed and saved speed information};
+        \node[decision, below of=get] (plus) {Did the user hit '+'?};
+        \node[block, below of=plus, node distance=3cm] (inc) {LSR speed, restore any bit pushed off};
+        \node[decision, below of=inc] (minus) {Did the user hit '-'?};
+        \node[block, below of=minus, node distance=3cm] (dec) {LSL speed, save bit pushed off};
+        \node[block, below of=dec] (set) {Set speed and store bits pushed off};
+        \node[block, below of=set] (strt) {Start timer};
+        \node[block, right of=rst, node distance=7.5cm] (toggle) {Toggle disable/enable bit in TCR};
+        \node[cloud, below of=paused, node distance=21cm] (stop) {Stop};
+        \path[line, dotted] (paused) +(0,3) -- (paused);
+        \draw[dotted] (paused) +(7.5,3) -- +(7.5,0);
+        \path[line] (paused) +(7.5,0) |- (stop);
+        \draw (toggle) -- +(4.5,0);
+        \path[line] (paused) -| node [near start] {no} (rst);
+        \path[line] (rst) -- (get);
+        \path[line] (get) -- (plus);
+        \path[line] (plus) -- node [near start] {yes} (inc);
+        \path[line] (inc) -- (minus);
+        \path[line] (minus) -- node [near start] {yes} (dec);
+        \path[line] (dec) -- (set);
+        \path[line] (set) -- (strt);
+        \path[line] (strt) |- (stop);
+        \path[line] (paused) -| node [near start] {yes} (toggle);
+        \path[line] (plus) -| node [near start] {no} +(-4.5,-6) -- (minus);
+        \path[line] (minus) -| node [near start] {no} +(4.5,-4.5) -- (set);
+    \end{tikzpicture}
+\end{center}

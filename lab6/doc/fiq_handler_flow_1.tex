@@ -1,0 +1,31 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[decision, below of=origin] (timer) {Interrupt caused by timer?};
+        \node[block, below of=timer, node distance=3cm] (uninter) {Reset timer interrupt};
+        \node[block, below of=uninter] (formfeed) {Clear terminal};
+        \node[block, below of=formfeed] (topout) {Output top portion};
+        \node[block, below of=topout] (get) {Get position and direction};
+        \node[block, below of=get] (update) {Update position, change position if necessary};
+        \node[block, below of=update] (term) {Update terminal output};
+        \node[block, below of=term] (set) {Save position and direction};
+        \node[block, below of=set] (botout) {Output bottom portion};
+        \node[decision, below of=botout] (uart) {Interrupt caused by UART?};
+        \node[block, below of=uart, node distance=3cm] (read) {Read input};
+        \path[line] (origin) -- (timer);
+        \path[line] (timer) -- node [near start] {yes} (uninter);
+        \path[line] (uninter) -- (formfeed);
+        \path[line] (formfeed) -- (topout);
+        \path[line] (topout) -- (get);
+        \path[line] (get) -- (update);
+        \path[line] (update) -- (term);
+        \path[line] (term) -- (set);
+        \path[line] (set) -- (botout);
+        \path[line] (botout) -- (uart);
+        \path[line] (uart) -- node [near start] {yes} (read);
+        \path[line, dotted] (read) -- +(0,-1.5);
+        \path[line] (timer) -| node [near start] {no} +(-7.5,-16.5) -- (uart);
+        \draw (uart) -| node [near start] {no} +(7.5,-3);
+        \path[line, dotted] (uart) +(7.5,-3) -- +(7.5,-4.5);
+    \end{tikzpicture}
+\end{center}
