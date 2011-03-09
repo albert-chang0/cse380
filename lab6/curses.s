@@ -30,7 +30,8 @@ prompt = "Welcome to ARM curses test.",10,13,\
          "+/- adjusts speed by a factor of 2",10,13,10,13,0
     align
 
-speed_save dcd 0
+; allocate space to save
+speed_save dcd 0,0,0
 
 ; lab6
 ; parameters: none
@@ -71,9 +72,6 @@ lab6
         ldr r0, =timer0
         mov r1, #1
         str r1, [r0, #tcr]
-
-iloop   ldr r1, [r0, #tcr]
-        b iloop
 
         ldmfd sp!, {lr} ; Restore register lr from stack    
         bx lr       
@@ -201,11 +199,6 @@ uart0   ldr r0, =u0base
         ldmnefd sp!, {r0-r12, lr}
         subnes pc, lr, #4           ; exit FIQ
 
-        ; stop timer and counter
-        ldr r1, =timer0
-        mov r0, #0
-        str r0, [r1, #tcr]
-
         bl read_character
 
         ; r1 - timer0 address
@@ -217,6 +210,11 @@ uart0   ldr r0, =u0base
         cmp r0, #32
         beq pause
 
+        ; stop and reset timer counter
+        ldr r1, =timer0
+        mov r0, #2
+        str r0, [r1, #tcr]
+
         ; get speed
         ldr r1, =timer0
         ldr r2, [r1, #mr1]
@@ -227,17 +225,17 @@ uart0   ldr r0, =u0base
 
         ; '+' - increase speed
         cmp r0, #43
-        andeq r5, r2, #1
-        moveq r2, r2, lsr #1
-        moveq r3, r3, lsl #1
-        addeq r3, r3, r5
+        andeq r5, r2, #1                ; get bit that needs to be saved
+        moveq r2, r2, lsr #1            ; new speed
+        moveq r3, r3, lsl #1            ; make room to store bit
+        addeq r3, r3, r5                ; store bit
 
         ; '-' - decrease speed
         cmp r0, #45
-        andeq r5, r3, #1
-        moveq r3, r3, lsr #1
-        moveq r2, r2, lsl #1
-        addeq r2, r2, r5
+        andeq r5, r3, #1                ; get last stored bit
+        moveq r3, r3, lsr #1            ; update saved bits
+        moveq r2, r2, lsl #1            ; double speed
+        addeq r2, r2, r5                ; add previous lsb
 
         ; change speed
         str r2, [r1, #mr1]
@@ -252,23 +250,19 @@ uart0   ldr r0, =u0base
         mov r0, #1
         str r0, [r1, #tcr]
 
-        ; reset and start timer and counter
+        ; start timer and counter
         ldr r1, =timer0
-        mov r0, #2
-        str r0, [r1, #tcr]
         mov r0, #1
         str r0, [r1, #tcr]
 
-        ldmfd sp!, {r0-r12, lr}
+        ldmfd sp!, {r0-r12, lr}     ; exit FIQ
         subs pc, lr, #4
 
         ; ' ' - pause toggle
         ; stop timer interrupts
 pause   ldr r0, =timer0
         ldr r1, [r0, #tcr]
-
         eor r1, r1, #1
-
         str r1, [r0, #tcr]
 
         ldmfd sp!, {r0-r12, lr}
