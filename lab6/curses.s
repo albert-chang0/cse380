@@ -14,6 +14,7 @@ u0iir equ 0x8               ; UART0 interrupt identification register
 vicbaseaddr equ 0xfffff000  ; vic base address
 vicintenable equ 0x10       ; interrupt enable
 vicintselect equ 0xc        ; select fiq or irq
+vicintenclr equ 0x14        ; vic interrupt clear register
 timer0 equ 0xe0004000
 tc equ 0x8
 mcr equ 0x14
@@ -24,12 +25,12 @@ mr1 equ 0x1c
 t_b_box = "+--------------------+",10,13,0
 pos = 1
 dir = 0
-pause = 0
 fill = "|*                   |",10,13,0
 prompt = "Welcome to ARM curses test.",10,13,\
-         "+/- adjusts speed by a factor of 2",10,13,\
-         "h/l changes direction",10,13,10,13,0
+         "+/- adjusts speed by a factor of 2",10,13,10,13,0
     align
+
+speed_save dcd 0
 
 ; lab6
 ; parameters: none
@@ -40,9 +41,6 @@ prompt = "Welcome to ARM curses test.",10,13,\
 ; forth. It accepts 4 keystrokes:
 ; +: doubles speed
 ; -: halves speed
-; h/H: move in the left direction
-; l/L: move in the right direction
-; q/Q: quit
 ; It uses two interrupts: timer and uart. After a certain amount of time, the
 ; display is updated, and when a keystroke is entered, it takes the appropriate
 ; action.
@@ -73,6 +71,9 @@ lab6
         ldr r0, =timer0
         mov r1, #1
         str r1, [r0, #tcr]
+
+iloop   ldr r1, [r0, #tcr]
+        b iloop
 
         ldmfd sp!, {lr} ; Restore register lr from stack    
         bx lr       
@@ -106,7 +107,7 @@ interrupt_init
         ; TIMER0 interrupt
         ldr r0, =timer0
         ldr r1, [r0, #mcr]
-        orr r1, r1, #0x38
+        orr r1, r1, #0x18
         str r1, [r0, #mcr]
 
         ; enable FIQs, disable IRQs
@@ -139,14 +140,6 @@ FIQ_Handler
         ; reset interrupt
         orr r1, r1, #2
         str r1, [r0, #tir]
-
-        ldr r0, =pause
-        ldrb r0, [r0]
-
-        ; if it is paused, already up-to-date
-        ; do nothing
-        cmp r4, #1
-        beq reset
 
         mov r0, #12
         bl output_character
@@ -200,13 +193,6 @@ FIQ_Handler
         ldr r0, =t_b_box
         bl output_string
 
-        ; reset count and enable clock
-reset   ldr r0, =timer0
-        mov r1, #2
-        str r1, [r0, #tcr]
-        mov r1, #1
-        str r1, [r0, #tcr]
-
         ; uart0 input?
 uart0   ldr r0, =u0base
         ldr r1, [r0, #u0iir]
@@ -215,29 +201,75 @@ uart0   ldr r0, =u0base
         ldmnefd sp!, {r0-r12, lr}
         subnes pc, lr, #4           ; exit FIQ
 
+        ; stop timer and counter
+        ldr r1, =timer0
+        mov r0, #0
+        str r0, [r1, #tcr]
+
         bl read_character
+
+        ; r1 - timer0 address
+        ; r2 - current speed
+        ; r3 - speed saver
+        ; r4 - speed saver address
+        ; r5 - scratchpad
+
+        cmp r0, #32
+        beq pause
 
         ; get speed
         ldr r1, =timer0
         ldr r2, [r1, #mr1]
 
+        ; get counter speed
+        ldr r4, =speed_save
+        ldr r3, [r4]
+
         ; '+' - increase speed
         cmp r0, #43
+        andeq r5, r2, #1
         moveq r2, r2, lsr #1
+        moveq r3, r3, lsl #1
+        addeq r3, r3, r5
 
         ; '-' - decrease speed
         cmp r0, #45
+        andeq r5, r3, #1
+        moveq r3, r3, lsr #1
         moveq r2, r2, lsl #1
-
-        ; ' ' - pause/restart
-        cmp r0, #32
-        ldr r1, =pause
-        ldreqb r2, [r1]
-        eoreq r2, r2, #1
-        streqb r2, [r1]
+        addeq r2, r2, r5
 
         ; change speed
         str r2, [r1, #mr1]
+
+        ; store speed information to memory
+        str r3, [r4]
+
+        ; reset and start timer and counter
+        ldr r1, =timer0
+        mov r0, #2
+        str r0, [r1, #tcr]
+        mov r0, #1
+        str r0, [r1, #tcr]
+
+        ; reset and start timer and counter
+        ldr r1, =timer0
+        mov r0, #2
+        str r0, [r1, #tcr]
+        mov r0, #1
+        str r0, [r1, #tcr]
+
+        ldmfd sp!, {r0-r12, lr}
+        subs pc, lr, #4
+
+        ; ' ' - pause toggle
+        ; stop timer interrupts
+pause   ldr r0, =timer0
+        ldr r1, [r0, #tcr]
+
+        eor r1, r1, #1
+
+        str r1, [r0, #tcr]
 
         ldmfd sp!, {r0-r12, lr}
         subs pc, lr, #4
