@@ -212,14 +212,14 @@ uart0   ldr r0, =u0base
 
         ; stop and reset timer counter
         ldr r1, =timer0
-        mov r0, #2
-        str r0, [r1, #tcr]
+        mov r5, #2
+        str r5, [r1, #tcr]
 
         ; get speed
         ldr r1, =timer0
         ldr r2, [r1, #mr1]
 
-        ; get counter speed
+        ; get saved speed information
         ldr r4, =speed_save
         ldr r3, [r4]
 
