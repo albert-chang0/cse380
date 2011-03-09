@@ -67,7 +67,13 @@ uart_init
         strb r0, [r1, #u0lcr]
 
         ; 9600 baud rate:
-        mov r0, #0x78
+        ;mov r0, #0x78
+        ;strb r0, [r1, #u0dll]
+        ;mov r0, #0
+        ;strb r0, [r1, #u0dlm]
+
+        ; 1152000 baud rate:
+        mov r0, #1
         strb r0, [r1, #u0dll]
         mov r0, #0
         strb r0, [r1, #u0dlm]
