@@ -31,7 +31,7 @@ prompt = "Welcome to ARM curses test.",10,13,\
     align
 
 ; allocate space to save
-speed_save dcd 0,0,0
+speed_save dcd 0,0
 
 ; lab6
 ; parameters: none
