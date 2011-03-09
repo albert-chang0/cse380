@@ -72,6 +72,7 @@ uart_init
         ;mov r0, #0
         ;strb r0, [r1, #u0dlm]
 
+        ; less flickering in curses
         ; 1152000 baud rate:
         mov r0, #1
         strb r0, [r1, #u0dll]
