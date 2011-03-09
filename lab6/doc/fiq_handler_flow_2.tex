@@ -1,6 +1,6 @@
 \begin{center}
     \begin{tikzpicture}[node distance=1.5cm, auto]
-        \node[decision] (paused) {Was the spacebar hit?};
+        \node[decision] (paused) {Was the space bar hit?};
         \node[block] at +(-4.5,-3) (rst) {Reset and stop timer counter};
         \node[block, below of=rst] (get) {Get Speed and saved speed information};
         \node[decision, below of=get] (plus) {Did the user hit '+'?};
