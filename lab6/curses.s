@@ -24,6 +24,7 @@ mr1 equ 0x1c
 t_b_box = "+--------------------+",10,13,0
 pos = 1
 dir = 0
+pause = 0
 fill = "|*                   |",10,13,0
 prompt = "Welcome to ARM curses test.",10,13,\
          "+/- adjusts speed by a factor of 2",10,13,\
@@ -70,7 +71,7 @@ lab6
 
         ; start timer
         ldr r0, =timer0
-        mov r1, #3
+        mov r1, #1
         str r1, [r0, #tcr]
 
         ldmfd sp!, {lr} ; Restore register lr from stack    
@@ -139,13 +140,12 @@ FIQ_Handler
         orr r1, r1, #2
         str r1, [r0, #tir]
 
-        ; get direction
-        ldr r2, =dir
-        ldrsb r4, [r2]
+        ldr r0, =pause
+        ldrb r0, [r0]
 
-        ; if direction is 0, already up-to-date
+        ; if it is paused, already up-to-date
         ; do nothing
-        cmp r4, #0
+        cmp r4, #1
         beq reset
 
         mov r0, #12
@@ -169,6 +169,10 @@ FIQ_Handler
         ; get position
         ldr r1, =pos
         ldrb r3, [r1]
+
+        ; get direction
+        ldr r2, =dir
+        ldrsb r4, [r2]
 
         ; replace old position with a space
         mov r5, #32
@@ -198,11 +202,14 @@ FIQ_Handler
 
         ; reset count and enable clock
 reset   ldr r0, =timer0
-        mov r1, #3
+        mov r1, #2
+        str r1, [r0, #tcr]
+        mov r1, #1
         str r1, [r0, #tcr]
 
         ; uart0 input?
 uart0   ldr r0, =u0base
+        ldr r1, [r0, #u0iir]
         tst r1, #1                  ; no pending interrupts
 
         ldmnefd sp!, {r0-r12, lr}
@@ -216,36 +223,21 @@ uart0   ldr r0, =u0base
 
         ; '+' - increase speed
         cmp r0, #43
-        lsreq r2, #1
+        moveq r2, r2, lsr #1
 
         ; '-' - decrease speed
         cmp r0, #45
-        lsleq r2, #1
+        moveq r2, r2, lsl #1
 
         ; ' ' - pause/restart
         cmp r0, #32
-        ldreq r2, =0x2dc6c0
+        ldr r1, =pause
+        ldreqb r2, [r1]
+        eoreq r2, r2, #1
+        streqb r2, [r1]
 
         ; change speed
         str r2, [r1, #mr1]
-
-        ldr r1, =dir
-        ldr r2, [r1]                ; fallback: same direction
-
-        moveq r2, #0
-
-        ; 'h' or 'H' - left direction
-        cmp r0, #104
-        cmpne r0, #72
-        moveq r2, #1
-
-        ; 'l' or 'L' - right direction
-        cmp r0, #108
-        cmpne r0, #76
-        mvneq r2, #0
-
-        ; change direction
-        str r2, [r1]
 
         ldmfd sp!, {r0-r12, lr}
         subs pc, lr, #4
