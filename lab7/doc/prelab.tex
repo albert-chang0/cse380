@@ -1,0 +1,101 @@
+\documentclass[letterpaper,10pt]{article}
+
+\setlength{\headheight}{0in}
+\setlength{\marginparsep}{0in}
+\setlength{\footskip}{0in}
+\setlength{\headsep}{0in}
+\setlength{\marginparwidth}{0in}
+\setlength{\marginparpush}{0in}
+\setlength{\voffset}{0in}
+\setlength{\hoffset}{-1in}
+\setlength{\voffset}{-1in}
+\setlength{\oddsidemargin}{0.75in}
+\setlength{\evensidemargin}{0.75in}
+\setlength{\topmargin}{0.75in}
+\setlength{\textheight}{9.5in}
+\setlength{\textwidth}{7in}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{10pt} %change this to match font size
+
+\pagestyle{empty}
+
+\begin{document}
+    Albert Chang and Nipun Chopra\\
+    CSE-380 A6\\
+    University at Buffalo\\
+    Dr. Kris Schindler\\
+    March 22, 2011\\
+    \textit{Lab 7 Prelab Write-up}
+
+    The main screen is updated whenever there's movement, whether that be from
+    the timer moving the barrels or Mario moving, coming from UART input. Both
+    will have to be enabled to activate interrupts.
+
+    When the timer interrupt is encountered, all barrels on screen are moved in
+    the direction they need to move in. Barrels can only move down ladders, and
+    once they reach the next level, the switch directions, The only time a
+    barrel hits the wall is on the ground, and it disappears. When a barrel
+    encounters any time of ladder, it may or may not fall down it.
+
+    Three conditions need to be met before Mario can move. First, a key must be
+    pressed to bring up the interrupt, and the key must be valid. Second, the
+    direction needs to be valid. So on a ladder, vertical movements are enabled,
+    when there's something under him, jumps and lateral movements are enabled.
+    Third, the next move must be a valid spot. In the event there's nothing
+    under him, movements are disabled and Mario falls. A fall of at least two
+    characters causes Mario to lose a life. If Mario moves, the screen needs
+    to be updated.
+
+    The score changes whenever Mario jumps over a barrel or when the end of
+    the level is reached. During these times, the score needs to be checked. At
+    every 1000 points, the life is increased. 5 times the level points are
+    rewarded for being over a barrel during a jump. 100 times level completed
+    is the amount rewarded upon completing the level.
+
+    If a barrel collides with Mario, Mario loses a life. The LEDs are
+    updated as needed. Barrel collision is detected when Mario and a barrel
+    occupy the same spot. This should be checked anytime the screen updates.
+    The only other time the LEDs need to be updated is when Mario gains a life.
+
+    The seven-segment display indicate what level we're on. Every time the level
+    increases (reach princess), it updates. When Mario is in the position in
+    front of the princess, the end of the level is reached.
+
+    The third interrupt is caused by the push button, which pauses the game.
+    "PAUSE" is printed at the center of the board. This disables any possible
+    movements. As described before, that would be the timer and UART. Either
+    the timer and UART interrupts can be disabled, or the timer and UART themselves
+    can be disabled.
+
+    Ejecting a barrel can be done either using a separate match counter register
+    on the same timer (need to be careful when resetting timer) or using a separate
+    timer altogether.
+
+    Each barrel needs a word to store all relevant information. Mario needs a
+    word to store his information. Life and level each require a nibble, they
+    can be coupled into a byte.
+
+    A random number generator is needed to decide whether a barrel falls down a
+    ladder or continues. To seed the number generator, the real time clock can
+    be used. The algorithm to generate a random number can either be used in a
+    linear congruential sequence generator or through a linear feedback shift
+    register. Testing will reveal which one is the better algorithm. The seed
+    can also come from the digital analog converter.
+
+    The tentative order of development is:
+
+    \begin{enumerate}
+        \item Make random number generator.
+        \item Make barrels move at desired rate.
+        \item Eject barrels at desired frequency.
+        \item Make Mario move laterally.
+        \item Make Mario move vertically.
+        \item Make Mario jump.
+        \item Implement pause.
+        \item Process scores.
+        \item Process lives.
+        \item Process levels (adjust score, barrel speed, ejection frequency, display).
+        \item Process collisions.
+    \end{enumerate}
+
+\end{document}
