@@ -82,6 +82,18 @@
     register. Testing will reveal which one is the better algorithm. The seed
     can also come from the digital analog converter.
 
+    Another way random numbers can be generated is by reading from the digital
+    analog converter, DAC. Any time a random number is needed, noise can be
+    read from the device. Or similar to how \textit{/dev/random} and
+    \textit{/dev/urandom}, in GNU/Linux, work, an entropy pool can be created
+    by reading from multiple devices. This type of randomness is considered to
+    be good in a cryptographically secure standpoint, but may not be optimal.
+    Depending on which method is taken. By waiting for sufficient entropy in
+    the entropy pool, time is wasted as well as RAM to hold all the numbers.
+    However, by not waiting for sufficient entropy, entropy is not guaranteed.
+    According to the documentation, these methods are strong, but slow, and
+    is poorly suited for large amounts of random data.
+
     The tentative order of development is:
 
     \begin{enumerate}
