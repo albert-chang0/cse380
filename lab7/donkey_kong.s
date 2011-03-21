@@ -31,6 +31,39 @@ vicintenable equ 0x10       ; interrupt enable
 vicintselect equ 0xc        ; select fiq or irq
 vicintenclr equ 0x14        ; vic interrupt clear register
 
+map = "   SCORE:00000  ",10,13,\
+      "+--------------+",10,13,\
+      "|              |",10,13,\
+      "|   !          |",10,13,\
+      "|   ===H       |",10,13,\
+      "|      H       |",10,13,\
+      "|&     H       |",10,13,\
+      "|-------#---H  |",10,13,\
+      "|           H  |",10,13,\
+      "|           H  |",10,13,\
+      "|  ==H=========|",10,13,\
+      "|    H         |",10,13,\
+      "|    H         |",10,13,\
+      "|-#--------H-  |",10,13,\
+      "|          H   |",10,13,\
+      "|          H   |",10,13,\
+      "|  H===========|",10,13,\
+      "|  H           |",10,13,\
+      "|  H           |",10,13,\
+      "|-----------H  |",10,13,\
+      "|           H  |",10,13,\
+      "|$          H  |",10,13,\
+      "+==============+",0
+        align
+
+mario_pos dcd 0
+next_rand dcd 0
+score dcw 0
+lives dcb 0xf
+lvl dcb 1
+jump_flag dcb 0
+        align
+
 ; game
 ; parameters: none
 ; returns: none
@@ -48,13 +81,16 @@ game
         str r0, [r3, #ccr]
 
         bl uart_init
+
         bl interrupt_init
 
-        ; setup gpio, makes sure ports 0.7-0.13 are for gpio by zeroing them.
+        ; setup display, makes sure ports 0.7-0.13 are for gpio by zeroing them.
+        ; setup push button
         ldr r0, =pinsel0
         ldr r1, [r0]
         bic r1, r1, #0xff00000
         bic r1, r1, #0xfc000
+        orr r1, r1, #0x20000000 bic r1, r1, #0x10000000
         str r1, [r0]
 
         ; setup direction
@@ -68,6 +104,9 @@ game
         ; clear prompt
         mov r0, #0xc
         bl output_character
+
+        ldr r0, =map
+        bl output_string
 
         ; start timer
         ldr r0, =timer0
@@ -87,13 +126,6 @@ game
 ;     - EINT: push button to toggle pause
 interrupt_init
         stmfd sp!, {lr}
-
-        ; push button setup      
-        ldr r0, =pinsel0
-        ldr r1, [r0]
-        orr r1, r1, #0x20000000
-        bic r1, r1, #0x10000000
-        str r1, [r0]                    ; PINSEL0 bits 29:28 = 10
 
         ; classify sources as IRQ or FIQ
         ldr r0, =vicbaseaddr
@@ -136,8 +168,7 @@ interrupt_init
         bx lr
 
 ; rand
-; parameters:
-;     r0 - seed
+; parameters: none
 ; returns:
 ;     r0 - generated random number
 ;
@@ -146,20 +177,130 @@ interrupt_init
 ;
 ; rand = {a * x_n + c} % m
 ;
-; m is understood to be 2^32
+; m is understood to be 2^32. Variables a and c are chosen by the programmer
+;
+; glibc/gcc
+; a = 1103515245
+; c = 12345
+; 
+; Microsoft Visual
+; a = 214013
+; c = 2531011
+;
+; Java API
+; a = 25214903917
+; c = 11
 rand
-        stmfd sp!, {r1, r2, lr}
+        stmfd sp!, {r1-r3, lr}
 
-        ldr r1, =16644525       ; well chosen number for variable a
-        ldr r2, =32767          ; well chosen number for variable c
+        ldr r3, =next_rand
+        ldr r0, [r3]
+        ldr r1, =1103515245
+        ldr r2, =12345
         mla r0, r1, r0, r2
+        str r0, [r3]
 
-        ldmfd sp!, {r1, r2, lr}
+        ldmfd sp!, {r1-r3 lr}
         bx lr
 
+; srand
+; parameters:
+;     r0 - seed
+; returns: none
+;
+; Initializes the random number generator
+srand
+        stmfd sp!, {r1, lr}
+
+        ldr r1, =next_rand
+        str r0, [r1]
+
+        ldmfd sp!, {r1, lr}
+
+; FIQ_Handler
+; parameters: none
+; returns: none
+;
+; Fast interrupt handler.
+; Timer interrupt:
+;     Updates barrel position, adds a new barrel if necessary
+; UART interrupt:
+;     Moves Mario
+; External interrupt
+;     Disables UART and timer
 FIQ_Handler
         stmfd sp!, {r0-r12, lr}
 
+        ; timer0 matched
+        ldr r0, =timer0
+        ldr r1, [r0, #tir]
+        tst r1, #2
+        beq uart0
+; reset interrupt orr r1, r1, #2
+        str r1, [r0, #tir]
+
+        mov r0, #12
+        bl output_character
+
+        ; update barrels
+
+        ; print map
+
+        ldmfd sp!, {r0-r12, lr}         ; exit FIQ
+        subs pc, lr, #4
+
+        ; uart0 input?
+uart0   ldr r0, =u0base
+        ldr r1, [r0, #u0iir]
+        tst r1, #1                  ; no pending interrupts
+        beq eint1
+
+        ; stop timer
+        ldr r0, =timer0
+        mov r1, #0
+        str r1, [r0, #0]
+
+        bl read_character
+        ldr r1, =mario_pos
+        ldr r3, [r2]
+
+        ; up
+        cmp r0, #119
+
+        ; down
+        cmp r0, #115
+
+        ; left
+        cmp r0, #97
+
+        ; right
+        cmp r0, #100
+
+        ; update map
+        mov r0, #0xc
+        bl output_character
+        ldr r0, =map
+        bl output_string
+
+        ; jump
+        cmp r0, #32
+
+        str r3, [r2]
+
+        ldmfd sp!, {r0-r12, lr}
+        subs pc, lr, #4                 ; exit FIQ
+
+        ; push button?
+eint1   ldr r0, =extint
+        ldr r1, [r0]
+        tst r1, #2
+
+        ldmnefd sp!, {r0-r12, lr}
+        subnes pc, lr, #4               ; exit FIQ
+
+        ; clear external interrupt
+        orr r1, r1, #2
+        str r1, [r0]
 
         ldmfd sp!, {r0-r12, lr}
         subs pc, lr, #4
