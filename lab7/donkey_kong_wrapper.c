@@ -1,6 +1,6 @@
-extern int mario (void);
+extern int game (void);
 
 int main (void)
 {
-	mario();
+	game();
 }
