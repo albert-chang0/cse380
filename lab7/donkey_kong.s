@@ -21,6 +21,7 @@ io0dir equ 0x8
 extint equ 0xe01fc140       ; external interrupt flag
 extmode equ 0x8             ; external interrupt mode control
 timer0 equ 0xe0004000
+timer1 equ 0xe0008000
 tc equ 0x8
 mcr equ 0x14
 tir equ 0x0
@@ -63,6 +64,7 @@ lives dcb 0xf
 lvl dcb 1
 jump_flag dcb 0
         align
+barrels dcd 0,0,0,0,0,0
 
 ; game
 ; parameters: none
@@ -81,8 +83,17 @@ game
         str r0, [r3, #ccr]
 
         bl uart_init
-
         bl interrupt_init
+
+        ; set initial barrel speed to ~1char/0.25s
+        ldr r0, =timer0
+        ldr r1, =0xb71b0
+        str r1, [r0. #mr1]
+
+        ; set initial barrel ejection frequency to ~1char/8s
+        ldr r0, =timer1
+        ldr r1, =0x16e3600
+        str r1, [r0. #mr1]
 
         ; setup display, makes sure ports 0.7-0.13 are for gpio by zeroing them.
         ; setup push button
@@ -90,7 +101,8 @@ game
         ldr r1, [r0]
         bic r1, r1, #0xff00000
         bic r1, r1, #0xfc000
-        orr r1, r1, #0x20000000 bic r1, r1, #0x10000000
+        orr r1, r1, #0x20000000
+        bic r1, r1, #0x10000000
         str r1, [r0]
 
         ; setup direction
@@ -108,9 +120,11 @@ game
         ldr r0, =map
         bl output_string
 
-        ; start timer
+        ; start timers
         ldr r0, =timer0
         mov r1, #1
+        str r1, [r0, #tcr]
+        ldr r0, =timer1
         str r1, [r0, #tcr]
 
         ldmfd sp!, {lr} ; Restore register lr from stack    
@@ -130,13 +144,13 @@ interrupt_init
         ; classify sources as IRQ or FIQ
         ldr r0, =vicbaseaddr
         ldr r1, [r0, #vicintselect]
-        orr r1, r1, #0x50               ; UART0 and TIMER0
+        orr r1, r1, #0x70               ; UART0 and TIMER0
         orr r1, r1, #0xa000             ; EINT1 and RTC
         str r1, [r0, #vicintselect]
 
         ; enable interrupts
         ldr r1, [r0, #vicintenable]
-        orr r1, r1, #0x50               ; UART0 and TIMER0
+        orr r1, r1, #0x70               ; UART0 and TIMER0
         orr r1, r1, #0xa000             ; EINT1 and RTC
         str r1, [r0, #vicintenable]
 
@@ -148,6 +162,12 @@ interrupt_init
 
         ; TIMER0 interrupt
         ldr r0, =timer0
+        ldr r1, [r0, #mcr]
+        orr r1, r1, #0x18
+        str r1, [r0, #mcr]
+
+        ; TIMER1 interrupt
+        ldr r0, =timer1
         ldr r1, [r0, #mcr]
         orr r1, r1, #0x18
         str r1, [r0, #mcr]
@@ -200,7 +220,7 @@ rand
         mla r0, r1, r0, r2
         str r0, [r3]
 
-        ldmfd sp!, {r1-r3 lr}
+        ldmfd sp!, {r1-r3, lr}
         bx lr
 
 ; srand
@@ -235,19 +255,38 @@ FIQ_Handler
         ldr r0, =timer0
         ldr r1, [r0, #tir]
         tst r1, #2
-        beq uart0
-; reset interrupt orr r1, r1, #2
+        beq t1ir
+        ; reset interrupt
+        orr r1, r1, #2
         str r1, [r0, #tir]
 
         mov r0, #12
         bl output_character
 
-        ; update barrels
+        bl mv_barrel
 
-        ; print map
+        ldr r0, =map
+        bl output_string
 
         ldmfd sp!, {r0-r12, lr}         ; exit FIQ
         subs pc, lr, #4
+
+        ; timer1 matched
+        ldr r0, =timer1
+        ldr r1, [r0, #tir]
+        tst r1, #2
+        beq uart0
+        ; reset interrupt
+        orr r1, r1, #2
+        str r1, [r0, #tir]
+
+        bl mk_barrel
+
+        ldr r0, =map
+        bl output_string
+
+        ldmfd sp!, {r0-r12, lr}
+        subs pc, lr, #4             ; exit FIQ
 
         ; uart0 input?
 uart0   ldr r0, =u0base
@@ -258,34 +297,13 @@ uart0   ldr r0, =u0base
         ; stop timer
         ldr r0, =timer0
         mov r1, #0
-        str r1, [r0, #0]
+        str r1, [r0, #tcr]
 
         bl read_character
-        ldr r1, =mario_pos
-        ldr r3, [r2]
+        bl mv_mario
 
-        ; up
-        cmp r0, #119
-
-        ; down
-        cmp r0, #115
-
-        ; left
-        cmp r0, #97
-
-        ; right
-        cmp r0, #100
-
-        ; update map
-        mov r0, #0xc
-        bl output_character
         ldr r0, =map
         bl output_string
-
-        ; jump
-        cmp r0, #32
-
-        str r3, [r2]
 
         ldmfd sp!, {r0-r12, lr}
         subs pc, lr, #4                 ; exit FIQ
@@ -302,7 +320,191 @@ eint1   ldr r0, =extint
         orr r1, r1, #2
         str r1, [r0]
 
+        bl pause_button
+
         ldmfd sp!, {r0-r12, lr}
         subs pc, lr, #4
+
+; mv_barrel
+; parameters: none
+; returns: none
+;
+; Moves all the barrels on the map. Barrels are stored in memory. Information
+; packed together in the following format:
+;     0:3   x-position
+;     4:8   y-position
+;     9:10  direction
+;    11:18  previous char
+;
+; Some memory could be saved if each barrel wasn't aligned since not all 32
+; bits are not required to store information.
+mv_barrel
+        stmfd sp!, {r0-r8, lr}
+
+        ; r1 - address of current working barrel
+        ; r2 - barrel information
+        ; r3 - parsed position
+        ; r4 - environment
+        ; r5 - character swap
+        ; r6 - scratchpad0
+        ; r7 - scratchpad1
+        ; r8 - counter
+
+        ldr r1, =barrels
+        ldr r4, =map
+        mov r8, #0
+
+bcloop  ldr r2, [r1, r8]
+        cmp r8, #6
+        ldmeqfd sp!, {r0-r8, lr}
+        cmp r2, #0
+        addeq r8, r8, #1
+        beq bcloop
+
+        ; parse position
+        ; 18y + x
+        ; isolate y-position
+        mov r6, r2, lsr #4
+        and r6, r6, #0x1f
+        ; get 16y + x
+        and r3, r2, #0xff
+        and r7, r2, #0x100
+        add r3, r3, r7
+        ; get (16y + x) + 2y = 18y + x
+        add r3, r3, r6, lsl #1
+
+        ; get replaced character
+        mov r5, r2, lsr #11
+        str r5, [r4, r3]            ; restore character
+        bic r2, r2, #0xf800
+        bic r2, r2, #0x70000
+
+        mov r0, #0
+
+        ; check if it's falling
+        add r3, r3, #18
+        ldr r6, [r4, r3]
+        cmp r6, #32                 ; nothing supporting barrel, definitely fall
+        addeq r7, #2
+        cmp r6, #35                 ; over a ladder, it could fall
+        cmpne r6, #72
+        moveq r7, #1
+        cmp r5, #72                 ; mid-fall down unbroken ladder, definitely falling
+        addeq r7, r7, #1
+        cmp r7, #1                  ; if it could fall, should it?
+        bleq rand
+        and r0, r0, #1
+        add r7, r7, r0
+        cmp r7, #2
+        subne r3, r3, #18
+        bne mvbh                    ; not going to fall, move horizontally
+        orr r2, r2, #0x400          ; set falling flag
+        add r2, r2, #0x10           ; update position
+        add r2, r2, r6, lsl #11     ; save replaced character
+        mov r6, #64
+        str r6, [r4, r3]            ; move barrel
+
+        str r2, [r1, r8]            ; update barrel
+        add r8, r8, #1
+        b bcloop
+
+mvbh    ldr r6, =379
+        cmp r3, r6
+        bne move_b
+        mov r2, #0
+        add r8, r8, #1
+        str r2, [r1, r8]
+        b bcloop
+
+move_b  tst r2, #0x200
+        movne r6, #1
+        mvneq r6, #0
+        add r2, r2, r6
+        add r3, r3, r6
+        ldr r5, [r4, r3]
+        add r2, r2, r5, lsl #11     ; save replaced character
+        mov r5, #64
+        str r5, [r4, r3]            ; move barrel
+
+        str r2, [r1, r8]            ; update barrel
+        add r8, r8, #1
+        b bcloop
+
+; mk_barrel
+; parameters: none
+; returns: none
+;
+; Generates a new barrel.
+mk_barrel
+        stmfd sp!, {r0, r1, lr}
+
+        ldr r0, =barrels
+seek    ldr r1, [r0], #1            ; find first available space in RAM
+        cmp r1, #0
+        bne seek
+
+        ; create barrel
+        ldr r1, =0x10262
+        str r1, [r0, #-1]
+
+        ; draw barrel
+        ldr r0, =map
+        mov r1, #64
+        str r1, [r0, #110]
+
+        ldmfd sp!, {r0, r1, lr}
+
+; mv_mario
+; parameters:
+;     r0 - input
+; returns: none
+;
+; Moves Mario according to the user input. Mario is stored in memory.
+; Information is packed together in the following format:
+;     0:3   x-position
+;     4:8   y-position
+;     9:10  direction
+;    11:18  previous char
+;
+; Some memory could be saved if there was no alignment since not all 32 bits
+; are required to store information.
+mv_mario
+        stmfd sp!, {lr}
+        ldr r1, =mario_pos
+        ldr r3, [r2]
+
+        ; up
+        cmp r0, #119
+
+        ; down
+mdown   cmp r0, #115
+        bne mleft
+
+        ; left
+mleft   cmp r0, #97
+        bne mright
+
+        ; right
+mright  cmp r0, #100
+        bne mjump
+
+        ; update map
+print   mov r0, #0xc
+        bl output_character
+        ldr r0, =map
+        bl output_string
+
+        ; jump
+mjump   cmp r0, #32
+
+        str r3, [r2]
+
+        ldmfd sp!, {lr}
+
+pause_button
+        stmfd sp!, {lr}
+
+
+        ldmfd sp!, {lr}
 
         end 
