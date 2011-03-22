@@ -62,7 +62,6 @@ next_rand dcd 0
 score dcw 0
 lives dcb 0xf
 lvl dcb 1
-jump_flag dcb 0
         align
 barrels dcd 0,0,0,0,0,0
 
@@ -416,7 +415,10 @@ mvbh    ldr r6, =379
         str r2, [r1, r8]
         b bcloop
 
-move_b  tst r2, #0x200
+move_b  tst r2, #0x400              ; if it had just fallen
+        eorne r2, r2, #0x200        ; change direction
+        bicne r2, r2, #0x400        ; clear falling flag
+        tst r2, #0x200
         movne r6, #1
         mvneq r6, #0
         add r2, r2, r6
@@ -463,8 +465,8 @@ seek    ldr r1, [r0], #1            ; find first available space in RAM
 ; Information is packed together in the following format:
 ;     0:3   x-position
 ;     4:8   y-position
-;     9:10  direction
-;    11:18  previous char
+;     9     direction
+;    10:17  previous char
 ;
 ; Some memory could be saved if there was no alignment since not all 32 bits
 ; are required to store information.
