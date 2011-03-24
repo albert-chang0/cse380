@@ -38,7 +38,7 @@ map = "   SCORE:00000  ",10,13,\
       "|   !          |",10,13,\
       "|   ===H       |",10,13,\
       "|      H       |",10,13,\
-      "|&     H       |",10,13,\
+      "|&@    H       |",10,13,\
       "|-------#---H  |",10,13,\
       "|           H  |",10,13,\
       "|           H  |",10,13,\
@@ -59,11 +59,10 @@ map = "   SCORE:00000  ",10,13,\
 
 mario_pos dcd 0
 next_rand dcd 0
+barrels dcd 0x10262,0,0,0,0,0
 score dcw 0
-lives dcb 0xf
-lvl dcb 1
+lvl_lives dcb 0x1f
         align
-barrels dcd 0,0,0,0,0,0
 
 ; game
 ; parameters: none
@@ -74,12 +73,12 @@ barrels dcd 0,0,0,0,0,0
 ; awarded upon completing each level. Every 1000 points earns the user another
 ; life.
 game
-        stmfd sp!, {lr}  ; Store register lr on stack
+        stmfd sp!,{lr}  ; Store register lr on stack
 
         ; start clock
-        ldr r3, =rtcbase
-        mov r0, #1
-        str r0, [r3, #ccr]
+        ;ldr r3, =rtcbase
+        ;mov r0, #1
+        ;str r0, [r3, #ccr]
 
         bl uart_init
         bl interrupt_init
@@ -87,12 +86,12 @@ game
         ; set initial barrel speed to ~1char/0.25s
         ldr r0, =timer0
         ldr r1, =0xb71b0
-        str r1, [r0. #mr1]
+        str r1, [r0, #mr1]
 
         ; set initial barrel ejection frequency to ~1char/8s
         ldr r0, =timer1
         ldr r1, =0x16e3600
-        str r1, [r0. #mr1]
+        str r1, [r0, #mr1]
 
         ; setup display, makes sure ports 0.7-0.13 are for gpio by zeroing them.
         ; setup push button
@@ -119,9 +118,22 @@ game
         ldr r0, =map
         bl output_string
 
-        ; start timers
+        ;ldr r1, =rtcbase
+        ;ldr r0, [r1, #ctime0]
+        ;ldr r0, [r1, #ctc]
+        ldr r0, =0xa3f4e
+        bl srand
+
+        ; reset timers
+        mov r1, #2
         ldr r0, =timer0
+        str r1, [r0, #tcr]
+        ldr r0, =timer1
+        str r1, [r0, #tcr]
+
+        ; start timers
         mov r1, #1
+        ldr r0, =timer0
         str r1, [r0, #tcr]
         ldr r0, =timer1
         str r1, [r0, #tcr]
@@ -138,19 +150,19 @@ game
 ;     - UART: move Mario
 ;     - EINT: push button to toggle pause
 interrupt_init
-        stmfd sp!, {lr}
+        stmfd sp!, {r0, r1, lr}
 
         ; classify sources as IRQ or FIQ
         ldr r0, =vicbaseaddr
         ldr r1, [r0, #vicintselect]
-        orr r1, r1, #0x70               ; UART0 and TIMER0
-        orr r1, r1, #0xa000             ; EINT1 and RTC
+        orr r1, r1, #0x70               ; UART0, TIMER0, and TIMER1
+        orr r1, r1, #0x8000             ; EINT1
         str r1, [r0, #vicintselect]
 
         ; enable interrupts
         ldr r1, [r0, #vicintenable]
-        orr r1, r1, #0x70               ; UART0 and TIMER0
-        orr r1, r1, #0xa000             ; EINT1 and RTC
+        orr r1, r1, #0x70               ; UART0, TIMER0, and TIMER1
+        orr r1, r1, #0x8000             ; EINT1
         str r1, [r0, #vicintenable]
 
         ; UART0 interrupt on RX
@@ -183,7 +195,7 @@ interrupt_init
         orr r0, r0, #0x80
         msr cpsr_c, r0
 
-        ldmfd sp!, {lr}
+        ldmfd sp!, {r0, r1, lr}
         bx lr
 
 ; rand
@@ -235,6 +247,7 @@ srand
         str r0, [r1]
 
         ldmfd sp!, {r1, lr}
+        bx lr
 
 ; FIQ_Handler
 ; parameters: none
@@ -271,7 +284,7 @@ FIQ_Handler
         subs pc, lr, #4
 
         ; timer1 matched
-        ldr r0, =timer1
+t1ir    ldr r0, =timer1
         ldr r1, [r0, #tir]
         tst r1, #2
         beq uart0
@@ -298,7 +311,6 @@ uart0   ldr r0, =u0base
         mov r1, #0
         str r1, [r0, #tcr]
 
-        bl read_character
         bl mv_mario
 
         ldr r0, =map
@@ -340,6 +352,8 @@ eint1   ldr r0, =extint
 mv_barrel
         stmfd sp!, {r0-r8, lr}
 
+        ;bl mv_mario
+
         ; r1 - address of current working barrel
         ; r2 - barrel information
         ; r3 - parsed position
@@ -353,9 +367,10 @@ mv_barrel
         ldr r4, =map
         mov r8, #0
 
-bcloop  ldr r2, [r1, r8]
+bcloop  ldr r2, [r1, r8, lsl #2]
         cmp r8, #6
         ldmeqfd sp!, {r0-r8, lr}
+        bxeq lr
         cmp r2, #0
         addeq r8, r8, #1
         beq bcloop
@@ -374,7 +389,7 @@ bcloop  ldr r2, [r1, r8]
 
         ; get replaced character
         mov r5, r2, lsr #11
-        str r5, [r4, r3]            ; restore character
+        strb r5, [r4, r3]            ; restore character
         bic r2, r2, #0xf800
         bic r2, r2, #0x70000
 
@@ -382,7 +397,7 @@ bcloop  ldr r2, [r1, r8]
 
         ; check if it's falling
         add r3, r3, #18
-        ldr r6, [r4, r3]
+        ldrb r6, [r4, r3]
         cmp r6, #32                 ; nothing supporting barrel, definitely fall
         addeq r7, #2
         cmp r6, #35                 ; over a ladder, it could fall
@@ -390,6 +405,9 @@ bcloop  ldr r2, [r1, r8]
         moveq r7, #1
         cmp r5, #72                 ; mid-fall down unbroken ladder, definitely falling
         addeq r7, r7, #1
+        cmp r6, #45
+        cmpne r6, #61
+        subeq r7, r7, #1
         cmp r7, #1                  ; if it could fall, should it?
         bleq rand
         and r0, r0, #1
@@ -401,7 +419,7 @@ bcloop  ldr r2, [r1, r8]
         add r2, r2, #0x10           ; update position
         add r2, r2, r6, lsl #11     ; save replaced character
         mov r6, #64
-        str r6, [r4, r3]            ; move barrel
+        strb r6, [r4, r3]            ; move barrel
 
         str r2, [r1, r8]            ; update barrel
         add r8, r8, #1
@@ -423,10 +441,10 @@ move_b  tst r2, #0x400              ; if it had just fallen
         mvneq r6, #0
         add r2, r2, r6
         add r3, r3, r6
-        ldr r5, [r4, r3]
+        ldrb r5, [r4, r3]
         add r2, r2, r5, lsl #11     ; save replaced character
         mov r5, #64
-        str r5, [r4, r3]            ; move barrel
+        strb r5, [r4, r3]            ; move barrel
 
         str r2, [r1, r8]            ; update barrel
         add r8, r8, #1
@@ -455,6 +473,7 @@ seek    ldr r1, [r0], #1            ; find first available space in RAM
         str r1, [r0, #110]
 
         ldmfd sp!, {r0, r1, lr}
+        bx lr
 
 ; mv_mario
 ; parameters:
@@ -465,43 +484,56 @@ seek    ldr r1, [r0], #1            ; find first available space in RAM
 ; Information is packed together in the following format:
 ;     0:3   x-position
 ;     4:8   y-position
-;     9     direction
-;    10:17  previous char
+;     9:10  controlled fall (jump)
+;    11:18  previous char
 ;
 ; Some memory could be saved if there was no alignment since not all 32 bits
 ; are required to store information.
 mv_mario
-        stmfd sp!, {lr}
+        stmfd sp!, {r1-r7, lr}
+        
+        ; r1 - address of mario's position
+        ; r2 - mario's position
+        ; r3 - parsed position
+        ; r4 - environment
+        ; r5 - character swap
+        ; r6 - scratchpad0
+        ; r7 - scratchpad1
+
         ldr r1, =mario_pos
-        ldr r3, [r2]
+        ldr r2, [r1]
 
-        ; up
-        cmp r0, #119
+        ; parse position
+        ; 18y + x
+        ; isolate y-position
+        mov r6, r2, lsr #4
+        and r6, r6, #0x1f
+        ; get 16y + x
+        and r3, r2, #0xff
+        and r7, r2, #0x100
+        add r3, r3, r7
+        ; get (16y + x) + 2y = 18y + x
+        add r3, r3, r6, lsl #1
 
-        ; down
-mdown   cmp r0, #115
-        bne mleft
+        ; mid jump
+        tst r2, #0x400
+        bne mvm
 
-        ; left
-mleft   cmp r0, #97
-        bne mright
+        ; get replaced character
+        mov r5, r2, lsr #11
+        str r5, [r4, r3]            ; restore character
+        bic r2, r2, #0xf800
+        bic r2, r2, #0x70000
 
-        ; right
-mright  cmp r0, #100
-        bne mjump
+        ; check if it's falling
+        add r3, r3, #18
+        ldr r6, [r4, r3]
+        cmp r6, #32                 ; nothing supporting Mario
 
-        ; update map
-print   mov r0, #0xc
-        bl output_character
-        ldr r0, =map
-        bl output_string
+mvm     bl read_character
 
-        ; jump
-mjump   cmp r0, #32
-
-        str r3, [r2]
-
-        ldmfd sp!, {lr}
+        ldmfd sp!, {r1-r7, lr}
+        bx lr
 
 pause_button
         stmfd sp!, {lr}
