@@ -12,7 +12,6 @@ pinsel0 equ 0xe002c000      ; pin select
 rtcbase equ 0xe0024000      ; rtc base address
 ccr equ 0x8                 ; clock counter register
 ctc equ 0x4
-ctime0 equ 0x14             ; clock consolidated time
 u0base equ 0xe000c000       ; UART0 base address
 u0ier equ 0x4               ; UART0 interrupt enable register
 u0iir equ 0x8               ; UART0 interrupt identification register
@@ -24,6 +23,7 @@ timer0 equ 0xe0004000
 timer1 equ 0xe0008000
 tc equ 0x8
 mcr equ 0x14
+pr equ 0xc
 tir equ 0x0
 tcr equ 0x4
 mr1 equ 0x1c
@@ -55,6 +55,9 @@ map = "   SCORE:00000  ",10,13,\
       "|           H  |",10,13,\
       "|$          H  |",10,13,\
       "+==============+",0
+pause_swap = "|              |",10,13,\
+             "| P A U S E D  |",10,13,\
+             "|              |",10,13\
         align
 
 mario_pos dcd 0
@@ -77,20 +80,23 @@ game
 
         ; start clock
         ;ldr r3, =rtcbase
-        ;mov r0, #1
+        ;mov r0, #0x11
         ;str r0, [r3, #ccr]
 
         bl uart_init
         bl interrupt_init
 
-        ; set initial barrel speed to ~1char/0.25s
         ldr r0, =timer0
-        ldr r1, =0xb71b0
-        str r1, [r0, #mr1]
+        ldr r1, =0x2d000
+        str r1, [r0, #pr]       ; set increment to ~0.01s
+        mov r1, #25
+        str r1, [r0, #mr1]      ; set initial speed to ~4char/s
 
         ; set initial barrel ejection frequency to ~1char/8s
         ldr r0, =timer1
-        ldr r1, =0x16e3600
+        ldr r1, =0x708000
+        str r1, [r0, #pr]       ; set increment to ~0.4s
+        mov r1, #20             ; set initial frequency to ~1barrel/8s
         str r1, [r0, #mr1]
 
         ; setup display, makes sure ports 0.7-0.13 are for gpio by zeroing them.
@@ -119,7 +125,6 @@ game
         bl output_string
 
         ;ldr r1, =rtcbase
-        ;ldr r0, [r1, #ctime0]
         ;ldr r0, [r1, #ctc]
         ldr r0, =0xa3f4e
         bl srand
@@ -394,32 +399,31 @@ bcloop  ldr r2, [r1, r8, lsl #2]
         bic r2, r2, #0x70000
 
         mov r0, #0
+        mov r7, #0
 
-        ; check if it's falling
+        ; check surroundings
         add r3, r3, #18
         ldrb r6, [r4, r3]
-        cmp r6, #32                 ; nothing supporting barrel, definitely fall
-        addeq r7, #2
-        cmp r6, #35                 ; over a ladder, it could fall
-        cmpne r6, #72
-        moveq r7, #1
-        cmp r5, #72                 ; mid-fall down unbroken ladder, definitely falling
-        addeq r7, r7, #1
-        cmp r6, #45
-        cmpne r6, #61
-        subeq r7, r7, #1
-        cmp r7, #1                  ; if it could fall, should it?
-        bleq rand
-        and r0, r0, #1
-        add r7, r7, r0
-        cmp r7, #2
-        subne r3, r3, #18
-        bne mvbh                    ; not going to fall, move horizontally
+        cmp r6, #32
+        orreq r7, r7, #2_1000       ; next line is ' '
+        cmp r6, #72
+        orreq r7, r7, #2_0100       ; next line is 'H'
+        cmp r6, #35
+        orreq r7, r7, #2_0001       ; next line is '#'
+        cmp r5, #72
+        orreq r7, r7, #2_0010       ; replacement is 'H'
+
+        tst r7, #2_0101             ; if it could fall, should it?
+        blne rand
+        orr r7, r7, r0, lsl #3
+        tst r7, #2_1000
+        teqeq r7, #2_0110
+        beq mvbh                    ; not falling
         orr r2, r2, #0x400          ; set falling flag
         add r2, r2, #0x10           ; update position
         add r2, r2, r6, lsl #11     ; save replaced character
         mov r6, #64
-        strb r6, [r4, r3]            ; move barrel
+        strb r6, [r4, r3]           ; move barrel
 
         str r2, [r1, r8]            ; update barrel
         add r8, r8, #1
@@ -444,7 +448,7 @@ move_b  tst r2, #0x400              ; if it had just fallen
         ldrb r5, [r4, r3]
         add r2, r2, r5, lsl #11     ; save replaced character
         mov r5, #64
-        strb r5, [r4, r3]            ; move barrel
+        strb r5, [r4, r3]           ; move barrel
 
         str r2, [r1, r8]            ; update barrel
         add r8, r8, #1
@@ -484,8 +488,8 @@ seek    ldr r1, [r0], #1            ; find first available space in RAM
 ; Information is packed together in the following format:
 ;     0:3   x-position
 ;     4:8   y-position
-;     9:10  controlled fall (jump)
-;    11:18  previous char
+;     9     controlled fall (jump)
+;    10:17  previous char
 ;
 ; Some memory could be saved if there was no alignment since not all 32 bits
 ; are required to store information.
@@ -514,10 +518,6 @@ mv_mario
         add r3, r3, r7
         ; get (16y + x) + 2y = 18y + x
         add r3, r3, r6, lsl #1
-
-        ; mid jump
-        tst r2, #0x400
-        bne mvm
 
         ; get replaced character
         mov r5, r2, lsr #11
