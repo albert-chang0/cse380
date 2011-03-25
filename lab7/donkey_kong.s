@@ -7,6 +7,7 @@
     extern uart_init
     extern output_character
     extern read_character
+    extern display_digit
 
 pinsel0 equ 0xe002c000      ; pin select
 rtcbase equ 0xe0024000      ; rtc base address
@@ -117,17 +118,22 @@ game
         orr r1, r1, #0x3f80
         str r1, [r0, #io0dir]
 
-        ; clear prompt
-        mov r0, #0xc
-        bl output_character
-
-        ldr r0, =map
-        bl output_string
-
         ;ldr r1, =rtcbase
         ;ldr r0, [r1, #ctc]
         ldr r0, =0xa3f4e
         bl srand
+
+        mov r2, #1
+        mov r0, #1
+
+start   bl display_digit
+        ; clear prompt
+        mov r0, #0xc
+        bl output_character
+
+        ; initial display
+        ldr r0, =map
+        bl output_string
 
         ; reset timers
         mov r1, #2
@@ -142,6 +148,17 @@ game
         str r1, [r0, #tcr]
         ldr r0, =timer1
         str r1, [r0, #tcr]
+
+iloop   ldr r0, =lvl_lives
+        ldrb r0, [r0]
+        tst r0, r2
+        andeq r0, r0, #0xf
+        moveq r2, r0
+        beq start
+        tst r0, #0xf0
+        bne iloop
+
+        ; game over
 
         ldmfd sp!, {lr} ; Restore register lr from stack    
         bx lr       
@@ -357,7 +374,7 @@ eint1   ldr r0, =extint
 mv_barrel
         stmfd sp!, {r0-r8, lr}
 
-        ;bl mv_mario
+        ; make mario fall
 
         ; r1 - address of current working barrel
         ; r2 - barrel information
@@ -519,26 +536,88 @@ mv_mario
         ; get (16y + x) + 2y = 18y + x
         add r3, r3, r6, lsl #1
 
+        ; check if it's falling
+        add r3, r3, #18
+        ldr r6, [r4, r3]
+        cmp r6, #32                 ; nothing supporting Mario
+        ldmeqfd sp!, {r1-r7, lr}    ; let timer interrupts handle falling mario
+        bxeq lr
+
         ; get replaced character
         mov r5, r2, lsr #11
         str r5, [r4, r3]            ; restore character
         bic r2, r2, #0xf800
         bic r2, r2, #0x70000
 
-        ; check if it's falling
-        add r3, r3, #18
-        ldr r6, [r4, r3]
-        cmp r6, #32                 ; nothing supporting Mario
-
 mvm     bl read_character
+
+        ; reached princess
+        cmp r3, #59
+        ldmnefd sp!, {r1-r7, lr}
 
         ldmfd sp!, {r1-r7, lr}
         bx lr
 
 pause_button
-        stmfd sp!, {lr}
+        stmfd sp!, {r0, r1, lr}
 
+        ; toggle timer counters
+        ldr r0, =timer0
+        ldr r1, [r0, #tcr]
+        eor r1, r1, #1
+        str r1, [r0, #tcr]
+        ldr r1, =timer1
+        str r1, [r0, #tcr]
 
-        ldmfd sp!, {lr}
+        ; toggle uart interrupts
+        ldr r0, =uart0
+        ldr r1, [r0, =u0ier]
+        eor r1, r1, #1
+        str r1, [r0, =u0ier]
+
+        ; toggle pause display
+        ldr r0, =map
+        add r0, r0, #180
+        ldr r1, =pause_swap
+        bl ln_swap
+        add r0, r0, #18
+        add r1, r1, #18
+        bl ln_swap
+        add r0, r0, #18
+        add r1, r1, #18
+        bl ln_swap
+
+        ldmfd sp!, {r0, r1, lr}
+        bx lr
+
+; ln_swap
+; parameters:
+;     r0 - address of string 1
+;     r1 - address of string 2
+; returns: none
+;
+; Assuming both lines are the same, swap them. A line is considered to have
+; ended when a newline character and carriage return has been encountered.
+; Doesn't matter which order.
+ln_swap
+        stmfd sp!, {r0-r4, lr}
+
+        mov r4, #0
+
+nextc   ldrb r2, [r0]
+        ldrb r3, [r1]
+        strb r2, [r1], #1
+        strb r3, [r0], #1
+        cmp r2, #10
+        addeq r4, r4, #1
+        cmp r2, #13
+        addeq r4, r4, #1
+        cmp r2, #0
+        moveq r4, #2
+        cmp r4, #2
+        bne nextc
+
+        ldmfd sp!, {r0-r4, lr}
+        bx lr
 
         end 
