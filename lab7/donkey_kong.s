@@ -39,7 +39,7 @@ map = "   SCORE:00000  ",10,13,\
       "|   !          |",10,13,\
       "|   ===H       |",10,13,\
       "|      H       |",10,13,\
-      "|&@    H       |",10,13,\
+      "|&     H       |",10,13,\
       "|-------#---H  |",10,13,\
       "|           H  |",10,13,\
       "|           H  |",10,13,\
@@ -54,11 +54,11 @@ map = "   SCORE:00000  ",10,13,\
       "|  H           |",10,13,\
       "|-----------H  |",10,13,\
       "|           H  |",10,13,\
-      "|$          H  |",10,13,\
+      "|           H  |",10,13,\
       "+==============+",0
 pause_swap = "|              |",10,13,\
              "| P A U S E D  |",10,13,\
-             "|              |",10,13\
+             "|              |",10,13
         align
 
 mario_pos dcd 0
@@ -80,9 +80,9 @@ game
         stmfd sp!,{lr}  ; Store register lr on stack
 
         ; start clock
-        ;ldr r3, =rtcbase
-        ;mov r0, #0x11
-        ;str r0, [r3, #ccr]
+        ldr r3, =rtcbase
+        mov r0, #0x11
+        str r0, [r3, #ccr]
 
         bl uart_init
         bl interrupt_init
@@ -118,9 +118,9 @@ game
         orr r1, r1, #0x3f80
         str r1, [r0, #io0dir]
 
-        ;ldr r1, =rtcbase
-        ;ldr r0, [r1, #ctc]
-        ldr r0, =0xa3f4e
+        ;ldr r0, =0xa3f4e
+        ldr r1, =rtcbase
+        ldr r0, [r1, #ctc]
         bl srand
 
         mov r2, #1
@@ -250,8 +250,8 @@ rand
 
         ldr r3, =next_rand
         ldr r0, [r3]
-        ldr r1, =1103515245
-        ldr r2, =12345
+        ldr r1, =1103515245         ; variable a
+        ldr r2, =12345              ; variable c
         mla r0, r1, r0, r2
         str r0, [r3]
 
@@ -332,6 +332,9 @@ t1ir    ldr r0, =timer1
 
         bl mk_barrel
 
+        mov r0, #12
+        bl output_character
+
         ldr r0, =map
         bl output_string
 
@@ -362,7 +365,7 @@ uart0   ldr r0, =u0base
         bl output_string
 
         ; start timers
-        ldr r0, =timer0
+FIQ_ext ldr r0, =timer0
         mov r1, #1
         str r1, [r0, #tcr]
         ldr r0, =timer1
@@ -376,14 +379,7 @@ eint1   ldr r0, =extint
         ldr r1, [r0]
         tst r1, #2
 
-        ; start timers, if exiting
-        ldrne r0, =timer0
-        movne r1, #1
-        strne r1, [r0, #tcr]
-        ldrne r0, =timer1
-        strne r1, [r0, #tcr]
-        ldmnefd sp!, {r0-r12, lr}
-        subnes pc, lr, #4               ; no pending interrupts
+        bne FIQ_ext                     ; no pending interrupts
 
         ; clear external interrupt
         orr r1, r1, #2
@@ -393,13 +389,6 @@ eint1   ldr r0, =extint
 
         ldr r0, =map
         bl output_string
-
-        ; start timers
-        ldr r0, =timer0
-        mov r1, #1
-        str r1, [r0, #tcr]
-        ldr r0, =timer1
-        str r1, [r0, #tcr]
 
         ldmfd sp!, {r0-r12, lr}
         subs pc, lr, #4
@@ -464,7 +453,7 @@ bcloop  ldr r2, [r1, r8, lsl #2]
         mov r0, #0
         mov r7, #0
 
-        ; check surroundings
+        ; contextualize
         add r3, r3, #18
         ldrb r6, [r4, r3]
         cmp r6, #32
@@ -476,31 +465,22 @@ bcloop  ldr r2, [r1, r8, lsl #2]
         cmp r5, #72
         orreq r7, r7, #2_0010       ; replacement is 'H'
 
-        tst r7, #2_0101             ; if it could fall, should it?
+        tst r7, #2_0001             ; if it could fall, should it?
         blne rand
+        teq r7, #2_0100
+        bleq rand
         orr r7, r7, r0, lsl #3
         tst r7, #2_1000
-        teqeq r7, #2_0110
-        beq mvbh                    ; not falling
-        orr r2, r2, #0x400          ; set falling flag
-        add r2, r2, #0x10           ; update position
-        add r2, r2, r6, lsl #11     ; save replaced character
-        mov r6, #64
-        strb r6, [r4, r3]           ; move barrel
-
-        str r2, [r1, r8]            ; update barrel
-        add r8, r8, #1
-        b bcloop
-
-mvbh    ldr r6, =379
+        bne fall                    ; nothing supporting, definitely falling
+        teq r7, #2_0110
+        beq fall                    ; mid-fall down ladder, keep falling
+        sub r3, r3, #18
+        ldr r6, =379
         cmp r3, r6
-        bne move_b
-        mov r2, #0
-        add r8, r8, #1
-        str r2, [r1, r8]
-        b bcloop
-
-move_b  tst r2, #0x400              ; if it had just fallen
+        moveq r2, #0
+        streq r2, [r1, r8, lsl #2]
+        beq bcloop
+        tst r2, #0x400              ; if it had just fallen
         eorne r2, r2, #0x200        ; change direction
         bicne r2, r2, #0x400        ; clear falling flag
         tst r2, #0x200
@@ -513,7 +493,17 @@ move_b  tst r2, #0x400              ; if it had just fallen
         mov r5, #64
         strb r5, [r4, r3]           ; move barrel
 
-        str r2, [r1, r8]            ; update barrel
+        str r2, [r1, r8, lsl #2]            ; update barrel
+        add r8, r8, #1
+        b bcloop
+
+fall    orr r2, r2, #0x400          ; set falling flag
+        add r2, r2, #0x10           ; update position
+        add r2, r2, r6, lsl #11     ; save replaced character
+        mov r6, #64
+        strb r6, [r4, r3]           ; move barrel
+
+        str r2, [r1, r8, lsl #2]            ; update barrel
         add r8, r8, #1
         b bcloop
 
@@ -526,18 +516,18 @@ mk_barrel
         stmfd sp!, {r0, r1, lr}
 
         ldr r0, =barrels
-seek    ldr r1, [r0], #1            ; find first available space in RAM
+seek    ldr r1, [r0], #4            ; find first available space in RAM
         cmp r1, #0
         bne seek
 
         ; create barrel
         ldr r1, =0x10262
-        str r1, [r0, #-1]
+        str r1, [r0, #-4]
 
         ; draw barrel
         ldr r0, =map
         mov r1, #64
-        str r1, [r0, #110]
+        strb r1, [r0, #110]
 
         ldmfd sp!, {r0, r1, lr}
         bx lr
