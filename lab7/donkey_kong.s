@@ -63,7 +63,7 @@ pause_swap = "|              |",10,13,\
 
 mario_pos dcd 0
 next_rand dcd 0
-barrels dcd 0x10262,0,0,0,0,0
+barrels dcd 0,0,0,0,0,0
 score dcw 0
 lvl_lives dcb 0x1f
         align
@@ -127,6 +127,7 @@ game
         mov r0, #1
 
 start   bl display_digit
+        bl mk_barrel
         ; clear prompt
         mov r0, #0xc
         bl output_character
@@ -154,6 +155,7 @@ iloop   ldr r0, =lvl_lives
         tst r0, r2
         andeq r0, r0, #0xf
         moveq r2, r0
+        ; delete all barrels
         beq start
         tst r0, #0xf0
         bne iloop
@@ -285,6 +287,13 @@ srand
 FIQ_Handler
         stmfd sp!, {r0-r12, lr}
 
+        ; stop timers
+        ldr r0, =timer0
+        mov r1, #0
+        str r1, [r0, #tcr]
+        ldr r0, =timer1
+        str r1, [r0, #tcr]
+
         ; timer0 matched
         ldr r0, =timer0
         ldr r1, [r0, #tir]
@@ -301,6 +310,13 @@ FIQ_Handler
 
         ldr r0, =map
         bl output_string
+
+        ; start timers
+        ldr r0, =timer0
+        mov r1, #1
+        str r1, [r0, #tcr]
+        ldr r0, =timer1
+        str r1, [r0, #tcr]
 
         ldmfd sp!, {r0-r12, lr}         ; exit FIQ
         subs pc, lr, #4
@@ -319,13 +335,20 @@ t1ir    ldr r0, =timer1
         ldr r0, =map
         bl output_string
 
+        ; start timers
+        ldr r0, =timer0
+        mov r1, #1
+        str r1, [r0, #tcr]
+        ldr r0, =timer1
+        str r1, [r0, #tcr]
+
         ldmfd sp!, {r0-r12, lr}
-        subs pc, lr, #4             ; exit FIQ
+        subs pc, lr, #4                 ; exit FIQ
 
         ; uart0 input?
 uart0   ldr r0, =u0base
         ldr r1, [r0, #u0iir]
-        tst r1, #1                  ; no pending interrupts
+        tst r1, #1
         beq eint1
 
         ; stop timer
@@ -338,6 +361,13 @@ uart0   ldr r0, =u0base
         ldr r0, =map
         bl output_string
 
+        ; start timers
+        ldr r0, =timer0
+        mov r1, #1
+        str r1, [r0, #tcr]
+        ldr r0, =timer1
+        str r1, [r0, #tcr]
+
         ldmfd sp!, {r0-r12, lr}
         subs pc, lr, #4                 ; exit FIQ
 
@@ -346,14 +376,30 @@ eint1   ldr r0, =extint
         ldr r1, [r0]
         tst r1, #2
 
+        ; start timers, if exiting
+        ldrne r0, =timer0
+        movne r1, #1
+        strne r1, [r0, #tcr]
+        ldrne r0, =timer1
+        strne r1, [r0, #tcr]
         ldmnefd sp!, {r0-r12, lr}
-        subnes pc, lr, #4               ; exit FIQ
+        subnes pc, lr, #4               ; no pending interrupts
 
         ; clear external interrupt
         orr r1, r1, #2
         str r1, [r0]
 
         bl pause_button
+
+        ldr r0, =map
+        bl output_string
+
+        ; start timers
+        ldr r0, =timer0
+        mov r1, #1
+        str r1, [r0, #tcr]
+        ldr r0, =timer1
+        str r1, [r0, #tcr]
 
         ldmfd sp!, {r0-r12, lr}
         subs pc, lr, #4
@@ -558,6 +604,14 @@ mvm     bl read_character
         ldmfd sp!, {r1-r7, lr}
         bx lr
 
+; pause_button
+; parameters: none
+; returns: none
+;
+; Toggles pause and pause display. Swaps whatever is in the map on lines 10-13
+; with pause_swap. Implemented by disabling timer counter and UART0 RX line in
+; pin selection. This preserves the timer and prevents filling of the receive
+; buffer.
 pause_button
         stmfd sp!, {r0, r1, lr}
 
@@ -569,11 +623,11 @@ pause_button
         ldr r1, =timer1
         str r1, [r0, #tcr]
 
-        ; toggle uart interrupts
-        ldr r0, =uart0
-        ldr r1, [r0, =u0ier]
-        eor r1, r1, #1
-        str r1, [r0, =u0ier]
+        ; toggle uart receive
+        ldr r0, =pinsel0
+        ldr r1, [r0]
+        eor r1, r1, #4
+        str r1, [r0]
 
         ; toggle pause display
         ldr r0, =map
