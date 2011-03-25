@@ -118,7 +118,6 @@ game
         orr r1, r1, #0x3f80
         str r1, [r0, #io0dir]
 
-        ;ldr r0, =0xa3f4e
         ldr r1, =rtcbase
         ldr r0, [r1, #ctc]
         bl srand
