@@ -62,7 +62,6 @@ pause_swap = "|              |",10,13,\
         align
 
 mario_pos dcd 0
-next_rand dcd 1
 barrels dcd 0,0,0,0,0,0
 score dcw 0
 lvl_lives dcb 0x1f
