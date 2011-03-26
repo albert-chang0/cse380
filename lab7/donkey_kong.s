@@ -62,7 +62,7 @@ pause_swap = "|              |",10,13,\
         align
 
 mario_pos dcd 0
-barrels dcd 0,0,0,0,0,0
+barrels dcd 0,0,0,0,0
 score dcw 0
 lvl_lives dcb 0x1f
         align
@@ -89,14 +89,14 @@ game
         ldr r0, =timer0
         ldr r1, =0x2d000
         str r1, [r0, #pr]       ; set increment to ~0.01s
-        mov r1, #25
-        str r1, [r0, #mr1]      ; set initial speed to ~4char/s
+        mov r1, #26
+        str r1, [r0, #mr1]      ; set initial speed to ~4char/s (+0.01s)
 
         ; set initial barrel ejection frequency to ~1char/8s
         ldr r0, =timer1
         ldr r1, =0x708000
         str r1, [r0, #pr]       ; set increment to ~0.4s
-        mov r1, #20             ; set initial frequency to ~1barrel/8s
+        mov r1, #21             ; set initial frequency to ~1barrel/8s (+0.4s)
         str r1, [r0, #mr1]
 
         ; setup display, makes sure ports 0.7-0.13 are for gpio by zeroing them.
@@ -117,10 +117,23 @@ game
         orr r1, r1, #0x3f80
         str r1, [r0, #io0dir]
 
-        mov r2, #1
+        ; r0 - level
+        ; r1 - lvl_lives address
+        ; r2 - lvl_lives info
+        ldr r1, =lvl_lives
         mov r0, #1
 
 start   bl display_digit
+
+        ; delete all barrels
+        ldr r3, =barrels
+        mov r4, #0
+        str r4, [r3]
+        str r4, [r3, #1]
+        str r4, [r3, #2]
+        str r4, [r3, #3]
+        str r4, [r3, #4]
+
         bl mk_barrel
         ; clear prompt
         mov r0, #0xc
@@ -130,28 +143,38 @@ start   bl display_digit
         ldr r0, =map
         bl output_string
 
+        ; r3 - timer0 address
+        ; r4 - timer1 address
+        ; r5 - scratchpad
+
+        ldr r3, =timer0
+        ldr r4, =timer1
+
         ; reset timers
-        mov r1, #2
-        ldr r0, =timer0
-        str r1, [r0, #tcr]
-        ldr r0, =timer1
-        str r1, [r0, #tcr]
+        mov r5, #2
+        str r5, [r3, #tcr]
+        str r5, [r3, #tcr]
+
+        ; decrement match registers
+        ldr r5, [r3, #mr1]          ; faster barrels
+        sub r5, r5, #1
+        str r5, [r3, #mr1]
+        ldr r5, [r4, #mr1]          ; more frequent barrels
+        sub r5, r5, #1
+        str r5, [r3, #mr1]
 
         ; start timers
-        mov r1, #1
-        ldr r0, =timer0
-        str r1, [r0, #tcr]
-        ldr r0, =timer1
-        str r1, [r0, #tcr]
+        mov r5, #1
+        str r5, [r3, #tcr]
+        str r5, [r3, #tcr]
 
-iloop   ldr r0, =lvl_lives
-        ldrb r0, [r0]
-        tst r0, r2
-        andeq r0, r0, #0xf
-        moveq r2, r0
-        ; delete all barrels
+iloop   ldrb r2, [r1]
+        cmp r0, r2, lsr #4          ; detect new level
+        andne r2, r2, #0xf0
+        movne r0, r2, lsr #4
         beq start
-        tst r0, #0xf0
+        tst r0, #0xf0               ; finished all levels, game over
+        tstne r0, #0xf              ; out of lives, game over
         bne iloop
 
         ; game over
@@ -368,7 +391,7 @@ mv_barrel
         mov r8, #0
 
 bcloop  ldr r2, [r1, r8, lsl #2]
-        cmp r8, #6
+        cmp r8, #5
         ldmeqfd sp!, {r0-r8, lr}
         bxeq lr
         cmp r2, #0
@@ -421,10 +444,11 @@ bcloop  ldr r2, [r1, r8, lsl #2]
         teq r7, #2_0110
         beq fall                    ; mid-fall down ladder, keep falling
         sub r3, r3, #18
-        ldr r6, =379
+        ldr r6, =379                ; barrel at the end of its path
         cmp r3, r6
         moveq r2, #0
         streq r2, [r1, r8, lsl #2]
+        addeq r8, r8, #1
         beq bcloop
         tst r2, #0x400              ; if it had just fallen
         eorne r2, r2, #0x200        ; change direction
@@ -493,7 +517,7 @@ seek    ldr r1, [r0], #4            ; find first available space in RAM
 ; Some memory could be saved if there was no alignment since not all 32 bits
 ; are required to store information.
 mv_mario
-        stmfd sp!, {r1-r7, lr}
+        stmfd sp!, {r0-r7, lr}
         
         ; r1 - address of mario's position
         ; r2 - mario's position
@@ -522,6 +546,7 @@ mv_mario
         add r3, r3, #18
         ldr r6, [r4, r3]
         cmp r6, #32                 ; nothing supporting Mario
+        cmpne r6, #64               ; over a barrel (from jumping)
         ldmeqfd sp!, {r1-r7, lr}    ; let timer interrupts handle falling mario
         bxeq lr
 
@@ -535,9 +560,23 @@ mvm     bl read_character
 
         ; reached princess
         cmp r3, #59
-        ldmnefd sp!, {r1-r7, lr}
+        ldmnefd sp!, {r0-r7, lr}
+        bxne lr
 
-        ldmfd sp!, {r1-r7, lr}
+        ; process new level
+        ldr r0, =lvl_lives
+        ldrb r1, [r0]
+        add r2, r1, #0x10           ; increment level
+        strb r2, [r0]
+        mov r2, r1, lsl #6
+        add r2, r2, r1, lsl #5
+        add r2, r2, r1, lsl #2      ; 100 * lvl
+        ldr r0, =score
+        ldrh r1, [r0]
+        add r1, r1, r2
+        strh r1, [r0]
+
+        ldmfd sp!, {r0-r7, lr}
         bx lr
 
 ; pause_button
