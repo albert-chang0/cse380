@@ -62,7 +62,7 @@ pause_swap = "|              |",10,13,\
         align
 
 mario_pos dcd 0
-next_rand dcd 0
+next_rand dcd 1
 barrels dcd 0,0,0,0,0,0
 score dcw 0
 lvl_lives dcb 0x1f
@@ -117,10 +117,6 @@ game
         orr r1, r1, #0x260000
         orr r1, r1, #0x3f80
         str r1, [r0, #io0dir]
-
-        ldr r1, =rtcbase
-        ldr r0, [r1, #ctc]
-        bl srand
 
         mov r2, #1
         mov r0, #1
@@ -219,57 +215,6 @@ interrupt_init
         msr cpsr_c, r0
 
         ldmfd sp!, {r0, r1, lr}
-        bx lr
-
-; rand
-; parameters: none
-; returns:
-;     r0 - generated random number
-;
-; Uses the linear congruential generator algorithm to generate a random
-; number based on the seed. The equation for lcg is:
-;
-; rand = {a * x_n + c} % m
-;
-; m is understood to be 2^32. Variables a and c are chosen by the programmer
-;
-; glibc/gcc
-; a = 1103515245
-; c = 12345
-; 
-; Microsoft Visual
-; a = 214013
-; c = 2531011
-;
-; Java API
-; a = 25214903917
-; c = 11
-rand
-        stmfd sp!, {r1-r3, lr}
-
-        ldr r3, =next_rand
-        ldr r0, [r3]
-        ldr r1, =1103515245         ; variable a
-        ldr r2, =12345              ; variable c
-        mla r0, r1, r0, r2
-        str r0, [r3]
-
-        ldmfd sp!, {r1-r3, lr}
-        bx lr
-
-; srand
-; parameters:
-;     r0 - seed
-; returns: none
-;
-; Initializes the random number generator
-srand
-        stmfd sp!, {r1, lr}
-
-        ldr r1, =next_rand
-        str r0, [r1]
-
-        ldmfd sp!, {r1, lr}
         bx lr
 
 ; FIQ_Handler
@@ -464,10 +409,13 @@ bcloop  ldr r2, [r1, r8, lsl #2]
         cmp r5, #72
         orreq r7, r7, #2_0010       ; replacement is 'H'
 
+        ldr r6, =rtcbase
         tst r7, #2_0001             ; if it could fall, should it?
-        blne rand
+        ldrne r0, [r6, #ctc]
+        andne r0, r0, #1
         teq r7, #2_0100
-        bleq rand
+        ldreq r0, [r6, #ctc]
+        andeq r0, r0, #1
         orr r7, r7, r0, lsl #3
         tst r7, #2_1000
         bne fall                    ; nothing supporting, definitely falling
