@@ -3,10 +3,11 @@
     export game 
     export FIQ_Handler
 
-    extern output_string
+    extern mod
     extern uart_init
     extern output_character
     extern read_character
+    extern output_string
     extern display_digit
     extern leds
 

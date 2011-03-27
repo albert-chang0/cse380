@@ -1,4 +1,5 @@
     area library, code, readwrite
+
     export uart_init
     export output_character
     export read_character
@@ -8,6 +9,7 @@
     export read_push_btns
     export leds
     export rgb_led
+    export mod
 
 pinsel0 equ 0xe002c000      ; UART0 pin select
 u0base equ 0xe000c000       ; UART0 base address
