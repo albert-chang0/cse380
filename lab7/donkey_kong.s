@@ -64,7 +64,7 @@ pause_swap = "|              |",10,13,\
 
 game_over_swap = "|              |",10,13,\
                  "|   G A M E    |",10,13,\
-                 "|   O V E R    |",10,13,\
+                 "|    O V E R   |",10,13,\
                  "|              |",10,13
         align
 
@@ -277,7 +277,7 @@ interrupt_init
 ;
 ; Fast interrupt handler.
 ; Timer interrupt:
-;     Updates barrel position, adds a new barrel if necessary
+;     Updates barrel position/gravity, adds a new barrel if necessary
 ; UART interrupt:
 ;     Moves Mario
 ; External interrupt
@@ -304,6 +304,7 @@ FIQ_Handler
         mov r0, #12
         bl output_character
 
+        bl fall_mario
         bl mv_barrel
 
         ldr r0, =map
@@ -407,8 +408,6 @@ eint1   ldr r0, =extint
 mv_barrel
         stmfd sp!, {r0-r8, lr}
 
-        ; make mario fall
-
         ; r1 - address of current working barrel
         ; r2 - barrel information
         ; r3 - parsed position
@@ -471,9 +470,9 @@ bcloop  ldr r2, [r1, r8, lsl #2]
         andeq r0, r0, #1
         orr r7, r7, r0, lsl #3
         tst r7, #2_1000
-        bne fall                    ; nothing supporting, definitely falling
+        bne bfall                   ; nothing supporting, definitely falling
         teq r7, #2_0110
-        beq fall                    ; mid-fall down ladder, keep falling
+        beq bfall                   ; mid-fall down ladder, keep falling
         ldr r6, =379                ; barrel at the end of its path
         cmp r3, r6
         moveq r2, #0
@@ -495,12 +494,12 @@ bcloop  ldr r2, [r1, r8, lsl #2]
 
         str r2, [r1, r8, lsl #2]            ; update barrel
 
-        ; collision detection
+        ; collision detection goes here
 
         add r8, r8, #1
         b bcloop
 
-fall    orr r2, r2, #0x400          ; set falling flag
+bfall   orr r2, r2, #0x400          ; set falling flag
         add r2, r2, #0x10           ; update position
         add r2, r2, r6, lsl #11     ; save replaced character
         mov r6, #64
@@ -508,7 +507,7 @@ fall    orr r2, r2, #0x400          ; set falling flag
 
         str r2, [r1, r8, lsl #2]            ; update barrel
 
-        ; collision detection
+        ; collision detection goes here
 
         add r8, r8, #1
         b bcloop
@@ -726,7 +725,15 @@ valid   str r5, [r4, r3]            ; restore character
         add r2, r2, r7              ; x-position
         add r2, r2, r8, lsr #4      ; y-position
 
+        ; save previous character
+        ldrb r5, [r4, r3]
+        orr r2, r2, r5, lsl #10
+
         str r2, [r1]                ; save mario's position
+
+        ; update display
+        mov r5, #36
+        strb r5, [r4, r3]
 
         ; collision detection goes here
 
@@ -849,14 +856,13 @@ itoa    mov r0, #10
 
         ldmfd sp!, {r0-r2, lr}
 
-; set_mario
+; fall_mario
 ; parameters: none
 ; returns: none
 ;
-; Sets mario in the starting position, replacing the old one with previous
-; previous character
-set_mario
-        stmfd sp!, {lr}
+; Makes mario fall
+fall_mario
+        stmfd sp!, {r1-r7, lr}
 
         ; r1 - address of mario's position
         ; r2 - mario's position
@@ -865,7 +871,100 @@ set_mario
         ; r5 - character swap
         ; r6 - scratchpad0
         ; r7 - scratchpad1
-        ; r8 - scratchpad2
+
+        ldr r1, =mario_pos
+        ldr r4, =map
+        ldr r2, [r1]
+
+        ; parse position
+        ; 18y + x
+        ; isolate y-position
+        mov r6, r2, lsr #4
+        and r6, r6, #0x1f
+        ; get 16y + x
+        and r3, r2, #0xff
+        and r7, r2, #0x100
+        add r3, r3, r7
+        ; get (16y + x) + 2y = 18y + x
+        add r3, r3, r6, lsl #1
+
+
+        tst r2, #0x200
+        bne mfall                   ; fall because of jump
+
+        add r6, r3, #18
+        ldrb r6, [r4, r6]
+        cmp r6, #32                 ; fall because there's no support
+        cmpne r6, #64               ; barrels are not support characters
+        ldmnefd sp!, {r1-r7, lr}
+
+        ; replaced character
+mfall   mov r5, r2, lsr #11
+        str r5, [r4, r3]
+        bic r2, r2, #0xf800
+        bic r2, r2, #0x70000
+
+        ; update positions
+        add r3, r3, #18
+        add r2, r2, #0x10
+
+        ; save previous character
+        ldrb r5, [r4, r3]
+        orr r2, r2, r5, lsl #10
+
+        ; update display
+        mov r5, #36
+        strb r5, [r4, r3]
+
+        mov r7, #0
+
+        ; if landing, but not jump lose a life
+        add r6, r3, #18
+        ldrb r6, [r4, r6]
+        cmp r6, #32                 ; fall because there's no support
+        cmpne r6, #64               ; barrels are not support characters
+        orrne r7, r7, #0x1
+
+        tst r2, #0x200
+        orrne r7, r7, #0x10
+
+        ; collision detection goes here
+
+        cmp r7, #0x11
+        biceq r2, r2, #0x200
+        ldmeqfd sp!, {r1-r7, lr}
+
+        str r2, [r1]
+
+        ; lose a life
+        cmp r7, #0x01
+        ldmnefd sp!, {r1-r7, lr}
+
+        ldr r7, =lvl_lives
+        ldrb r6, [r7]
+        and r5, r6, #0xf
+        bic r6, r6, #0xf
+        orr r6, r6, r5, lsl #1
+        strb r6, [r7]
+
+        ldmfd sp!, {r1-r7, lr}
+
+; set_mario
+; parameters: none
+; returns: none
+;
+; Sets mario in the starting position, replacing the old one with previous
+; previous character
+set_mario
+        stmfd sp!, {r1-r7, lr}
+
+        ; r1 - address of mario's position
+        ; r2 - mario's position
+        ; r3 - parsed position
+        ; r4 - environment
+        ; r5 - character swap
+        ; r6 - scratchpad0
+        ; r7 - scratchpad1
 
         ldr r1, =mario_pos
         ldr r4, =map
@@ -890,7 +989,7 @@ set_mario
         ldr r2, =0x8151
         str r2, [r1]
 
-        ldmfd sp!, {lr}
+        ldmfd sp!, {r1-r7, lr}
         bx lr
 
 ; ln_swap
