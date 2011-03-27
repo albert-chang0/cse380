@@ -918,23 +918,26 @@ mfall   mov r5, r2, lsr #11
 
         mov r7, #0
 
-        ; if landing, but not jump lose a life
+        ; landing
         add r6, r3, #18
         ldrb r6, [r4, r6]
         cmp r6, #32                 ; fall because there's no support
         cmpne r6, #64               ; barrels are not support characters
         orrne r7, r7, #0x1
 
+        ; from a jump
         tst r2, #0x200
         orrne r7, r7, #0x10
+
+        ; jumps should only last one fall
+        bic r2, r2, #0x200
+
+        str r2, [r1]
 
         ; collision detection goes here
 
         cmp r7, #0x11
-        biceq r2, r2, #0x200
         ldmeqfd sp!, {r1-r7, lr}
-
-        str r2, [r1]
 
         ; lose a life
         cmp r7, #0x01
