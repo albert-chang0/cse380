@@ -8,6 +8,7 @@
     extern output_character
     extern read_character
     extern display_digit
+    extern leds
 
 pinsel0 equ 0xe002c000      ; pin select
 rtcbase equ 0xe0024000      ; rtc base address
@@ -56,12 +57,18 @@ map = "   SCORE:00000  ",10,13,\
       "|           H  |",10,13,\
       "|           H  |",10,13,\
       "+==============+",0
+
 pause_swap = "|              |",10,13,\
              "| P A U S E D  |",10,13,\
              "|              |",10,13
+
+game_over_swap = "|              |",10,13,\
+                 "|   G A M E    |",10,13,\
+                 "|   O V E R    |",10,13,\
+                 "|              |",10,13
         align
 
-mario_pos dcd 0
+mario_pos dcd 0x8151
 barrels dcd 0,0,0,0,0
 score dcw 0
 lvl_lives dcb 0x1f
@@ -117,24 +124,38 @@ game
         orr r1, r1, #0x3f80
         str r1, [r0, #io0dir]
 
-        ; r0 - level
+        ; r0 - level/lives
         ; r1 - lvl_lives address
         ; r2 - lvl_lives info
+        ; r3 - timer0 address
+        ; r4 - timer1 address
+        ; r5 - scratchpad
+        ; r6 - scratchpad
+
         ldr r1, =lvl_lives
+        ldr r3, =timer0
+        ldr r4, =timer1
+
+        ; show amount of lives
+        mov r0, #0xf
+        bl leds
+
         mov r0, #1
 
 start   bl display_digit
 
         ; delete all barrels
-        ldr r3, =barrels
-        mov r4, #0
-        str r4, [r3]
-        str r4, [r3, #1]
-        str r4, [r3, #2]
-        str r4, [r3, #3]
-        str r4, [r3, #4]
+        ldr r5, =barrels
+        mov r6, #0
+        str r6, [r5]
+        str r6, [r5, #1]
+        str r6, [r5, #2]
+        str r6, [r5, #3]
+        str r6, [r5, #4]
 
         bl mk_barrel
+        bl set_mario
+
         ; clear prompt
         mov r0, #0xc
         bl output_character
@@ -142,13 +163,6 @@ start   bl display_digit
         ; initial display
         ldr r0, =map
         bl output_string
-
-        ; r3 - timer0 address
-        ; r4 - timer1 address
-        ; r5 - scratchpad
-
-        ldr r3, =timer0
-        ldr r4, =timer1
 
         ; reset timers
         mov r5, #2
@@ -168,16 +182,34 @@ start   bl display_digit
         str r5, [r3, #tcr]
         str r5, [r3, #tcr]
 
+        ldrb r5, [r1]
+        bic r5, r5, #0x1f0
+
 iloop   ldrb r2, [r1]
         cmp r0, r2, lsr #4          ; detect new level
-        andne r2, r2, #0xf0
-        movne r0, r2, lsr #4
+        andne r6, r2, #0xf0
+        movne r0, r6, lsr #4
         beq start
+        cmp r2, r5                  ; detect loss in life
+        bgt start
         tst r0, #0xf0               ; finished all levels, game over
         tstne r0, #0xf              ; out of lives, game over
         bne iloop
 
         ; game over
+        ldr r0, =map
+        add r0, r0, #144
+        ldr r1, =game_over_swap
+        bl ln_swap
+        add r0, r0, #18
+        add r1, r1, #18
+        bl ln_swap
+        add r0, r0, #18
+        add r1, r1, #18
+        bl ln_swap
+        add r0, r0, #18
+        add r1, r1, #18
+        bl ln_swap
 
         ldmfd sp!, {lr} ; Restore register lr from stack    
         bx lr       
@@ -416,12 +448,10 @@ bcloop  ldr r2, [r1, r8, lsl #2]
         bic r2, r2, #0xf800
         bic r2, r2, #0x70000
 
-        mov r0, #0
-        mov r7, #0
-
         ; contextualize
-        add r3, r3, #18
-        ldrb r6, [r4, r3]
+        add r7, r3, #18
+        ldrb r6, [r4, r7]
+        mov r7, #0
         cmp r6, #32
         orreq r7, r7, #2_1000       ; next line is ' '
         cmp r6, #72
@@ -431,6 +461,7 @@ bcloop  ldr r2, [r1, r8, lsl #2]
         cmp r5, #72
         orreq r7, r7, #2_0010       ; replacement is 'H'
 
+        mov r0, #0
         ldr r6, =rtcbase
         tst r7, #2_0001             ; if it could fall, should it?
         ldrne r0, [r6, #ctc]
@@ -443,7 +474,6 @@ bcloop  ldr r2, [r1, r8, lsl #2]
         bne fall                    ; nothing supporting, definitely falling
         teq r7, #2_0110
         beq fall                    ; mid-fall down ladder, keep falling
-        sub r3, r3, #18
         ldr r6, =379                ; barrel at the end of its path
         cmp r3, r6
         moveq r2, #0
@@ -464,6 +494,9 @@ bcloop  ldr r2, [r1, r8, lsl #2]
         strb r5, [r4, r3]           ; move barrel
 
         str r2, [r1, r8, lsl #2]            ; update barrel
+
+        ; collision detection
+
         add r8, r8, #1
         b bcloop
 
@@ -474,6 +507,9 @@ fall    orr r2, r2, #0x400          ; set falling flag
         strb r6, [r4, r3]           ; move barrel
 
         str r2, [r1, r8, lsl #2]            ; update barrel
+
+        ; collision detection
+
         add r8, r8, #1
         b bcloop
 
@@ -517,7 +553,7 @@ seek    ldr r1, [r0], #4            ; find first available space in RAM
 ; Some memory could be saved if there was no alignment since not all 32 bits
 ; are required to store information.
 mv_mario
-        stmfd sp!, {r0-r7, lr}
+        stmfd sp!, {r0-r8, lr}
         
         ; r1 - address of mario's position
         ; r2 - mario's position
@@ -526,9 +562,11 @@ mv_mario
         ; r5 - character swap
         ; r6 - scratchpad0
         ; r7 - scratchpad1
+        ; r8 - scratchpad2
 
         ldr r1, =mario_pos
         ldr r2, [r1]
+        ldr r4, =map
 
         ; parse position
         ; 18y + x
@@ -546,37 +584,183 @@ mv_mario
         add r3, r3, #18
         ldr r6, [r4, r3]
         cmp r6, #32                 ; nothing supporting Mario
-        cmpne r6, #64               ; over a barrel (from jumping)
-        ldmeqfd sp!, {r1-r7, lr}    ; let timer interrupts handle falling mario
+        ldmeqfd sp!, {r1-r8, lr}    ; let timer interrupts handle falling mario
         bxeq lr
+
+        tst r2, #0x200              ; mid-jump
+        ldmnefd sp!, {r1-r8, lr}
+        bxne lr
 
         ; get replaced character
         mov r5, r2, lsr #11
-        str r5, [r4, r3]            ; restore character
+
+        ; contextualize
+        mov r7, #0
+        add r8, r3, #18
+        ldrb r6, [r4, r8]
+        cmp r5, #72
+        orreq r7, r7, #2_0001       ; replacement is 'H'
+        cmp r6, #72
+        orreq r7, r7, #2_0010       ; next line is 'H'
+        add r8, r3, #1
+        ldrb r6, [r4, r8]
+        cmp r6, #0x7c
+        orreq r7, r7, #2_0100       ; next character is '|'
+        sub r8, r3, #1
+        ldrb r6, [r4, r8]
+        cmp r6, #0x7c
+        orreq r7, r7, #2_1000       ; previous character is '|'
+
+        bl read_character
+
+        ; r6 - delta parsed position
+        ; r7 - delta x position
+        ; r8 - delta y position
+
+        cmp r0, #0x77
+        beq up
+        cmp r0, #0x61
+        beq left
+        cmp r0, #0x73
+        beq down
+        cmp r0, #0x64
+        beq right
+        cmp r0, #0x41
+        beq jleft
+        cmp r0, #0x44
+        ldmnefd sp!, {r0-r8, lr}    ; invalid input, exit
+        bxne lr
+
+        ; jump right
+jright  bic r8, r7, #0xc
+        cmp r8, #0x3
+        ldmeqfd sp!, {r0-r8, lr}
+        bxeq lr
+        tst r7, #0x4
+        ldmnefd sp!, {r0-r8, lr}
+        bxne lr
+
+        ; set jump flag
+        orr r2, r2, #0x200
+
+        mov r6, #-17
+        mov r7, #1
+        mvn r8, #0
+
+        b valid
+
+        ; jump left
+jleft   bic r8, r7, #0xc
+        cmp r8, #0x3
+        ldmeqfd sp!, {r0-r8, lr}    ; invalid move, exit
+        bxeq lr
+        tst r7, #0x8
+        ldmnefd sp!, {r0-r8, lr}    ; invalid move, exit
+        bxne lr
+
+        ; set jump flag
+        orr r2, r2, #0x200
+
+        mov r6, #-19
+        mvn r7, #0
+        mvn r8, #0
+
+        b valid
+
+        ; move right
+right   bic r8, r7, #0xc
+        cmp r8, #0x3
+        ldmeqfd sp!, {r0-r8, lr}
+        bxeq lr
+        tst r7, #0x4
+        ldmnefd sp!, {r0-r8, lr}
+        bxne lr
+
+        mov r6, #1
+        mov r7, #1
+        mov r8, #0
+
+        b valid
+
+        ; move down
+down    tst r7, #2
+        ldmeqfd sp!, {r0-r8, lr}    ; invalid move, exit
+        bxeq lr
+
+        mov r6, #18
+        mov r7, #0
+        mov r8, #1
+
+        b valid
+
+        ; move left
+left    bic r8, r7, #0xc
+        cmp r8, #0x3
+        ldmeqfd sp!, {r0-r8, lr}    ; invalid move, exit
+        bxeq lr
+        tst r7, #0x8
+        ldmnefd sp!, {r0-r8, lr}    ; invalid move, exit
+        bxne lr
+
+        mvn r6, #0
+        mvn r7, #0
+        mov r8, #0
+
+        b valid
+
+        ; move up
+up      tst r7, #1
+        ldmeqfd sp!, {r0-r8, lr}
+        bxeq lr
+
+        mov r6, #-18
+        mov r7, #0
+        mvn r8, #0
+
+valid   str r5, [r4, r3]            ; restore character
         bic r2, r2, #0xf800
         bic r2, r2, #0x70000
 
-mvm     bl read_character
+        ; make the move
+        add r3, r3, r6              ; parsed position
+        add r2, r2, r7              ; x-position
+        add r2, r2, r8, lsr #4      ; y-position
 
-        ; reached princess
+        str r2, [r1]                ; save mario's position
+
+        ; collision detection goes here
+
+        ; potential points
+        ldr r0, =lvl_lives
+        ldrb r0, [r0]
+        mov r0, r0, lsr #4          ; clear out lives data
+        add r0, r0, lsl #2          ; 5 * lvl
+
+        ; check if jumped over a barrel
+        mov r6, #0
+        tst r2, #0x200
+        addne r3, r3, #18
+        ldrneb r6, [r4, r3]
+        cmp r6, #64
+        bleq add_score
+
+        ; check if reached princess
         cmp r3, #59
-        ldmnefd sp!, {r0-r7, lr}
+        ldmnefd sp!, {r0-r8, lr}    ; didn't reach
         bxne lr
 
         ; process new level
         ldr r0, =lvl_lives
         ldrb r1, [r0]
+        mov r2, r1, lsr #4
         add r2, r1, #0x10           ; increment level
         strb r2, [r0]
-        mov r2, r1, lsl #6
-        add r2, r2, r1, lsl #5
-        add r2, r2, r1, lsl #2      ; 100 * lvl
-        ldr r0, =score
-        ldrh r1, [r0]
-        add r1, r1, r2
-        strh r1, [r0]
+        mov r0, r1, lsl #6
+        add r0, r0, r1, lsl #5
+        add r0, r0, r1, lsl #2      ; 100 * lvl
+        bl add_score
 
-        ldmfd sp!, {r0-r7, lr}
+        ldmfd sp!, {r0-r8, lr}
         bx lr
 
 ; pause_button
@@ -619,10 +803,103 @@ pause_button
         ldmfd sp!, {r0, r1, lr}
         bx lr
 
+; add_score
+; parameters:
+;     r0 - increment
+; returns: none
+;
+; Performs all score handling. When score reaches 1000, add a new life.
+; Also caps score to displayable digits.
+add_score
+        stmfd sp!, {r0-r2, lr}
+
+        ldr r1, =score
+        ldrh r2, [r1]
+
+        ldr r3, =99999
+        add r2, r2, r0
+        cmp r3, r2
+        movgt r2, r3
+        strh r2, [r1]
+
+        mov r1, r0
+        ldr r2, =map
+        ldr r3, [r2, #10]       ; for detecting 1000 point reach
+        add r2, r2, #13
+
+        ; convert binary integer to string of integers for printing
+itoa    mov r0, #10
+        bl mod                  ; isolate last number
+        add r0, r0, #48         ; convert integer to ascii by adding 48
+        strb r0, [r2], #-1      ; update display
+        cmp r1, #0
+        bne itoa
+
+        ldr r1, =map
+        ldr r2, [r1, #10]       ; for detecting 1000 point reach
+        cmp r3, r2
+        ldmeqfd sp!, {r0-r2, lr}
+
+        ; 1000 points reached, gain a life
+        ldr r0, =lvl_lives
+        ldrb r1, [r0]
+        and r2, r1, #0xf
+        orr r1, r1, r2, lsr #1
+        strb r1, [r0]
+
+        ldmfd sp!, {r0-r2, lr}
+
+; set_mario
+; parameters: none
+; returns: none
+;
+; Sets mario in the starting position, replacing the old one with previous
+; previous character
+set_mario
+        stmfd sp!, {lr}
+
+        ; r1 - address of mario's position
+        ; r2 - mario's position
+        ; r3 - parsed position
+        ; r4 - environment
+        ; r5 - character swap
+        ; r6 - scratchpad0
+        ; r7 - scratchpad1
+        ; r8 - scratchpad2
+
+        ldr r1, =mario_pos
+        ldr r4, =map
+        ldr r2, [r1]
+
+        ; parse position
+        ; 18y + x
+        ; isolate y-position
+        mov r6, r2, lsr #4
+        and r6, r6, #0x1f
+        ; get 16y + x
+        and r3, r2, #0xff
+        and r7, r2, #0x100
+        add r3, r3, r7
+        ; get (16y + x) + 2y = 18y + x
+        add r3, r3, r6, lsl #1
+
+        ; replaced character
+        mov r5, r2, lsr #11
+        str r5, [r4, r3]
+
+        ldr r2, =0x8151
+        str r2, [r1]
+
+        ldmfd sp!, {lr}
+        bx lr
+
 ; ln_swap
 ; parameters:
-;     r0 - address of string 1
-;     r1 - address of string 2
+;     r0 - address of line 1
+;     r1 - address of line 2
+; 
+;     NOTE: assumes both lines are the same length
+;
 ; returns: none
 ;
 ; Assuming both lines are the same, swap them. A line is considered to have
