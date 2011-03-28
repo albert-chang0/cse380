@@ -20,6 +20,7 @@ u0ier equ 0x4               ; UART0 interrupt enable register
 u0iir equ 0x8               ; UART0 interrupt identification register
 iobase equ 0xe0028000
 io0dir equ 0x8
+io1dir equ 0x18
 extint equ 0xe01fc140       ; external interrupt flag
 extmode equ 0x8             ; external interrupt mode control
 timer0 equ 0xe0004000
@@ -118,8 +119,12 @@ game
         str r1, [r0]
 
         ; setup direction
+        ; P1.16-P1.19, output, LEDs
         ; P0.7-P0.13, output 7-segment
         ldr r0, =iobase
+        ldr r1, [r0, #io1dir]
+        orr r1, r1, #0xf0000
+        str r1, [r0, #io1dir]
         ldr r1, [r0, #io0dir]
         orr r1, r1, #0x260000
         orr r1, r1, #0x3f80
@@ -157,6 +162,8 @@ start   bl display_digit
         bl mk_barrel
         bl set_mario
 
+        mov r6, r0
+
         ; clear prompt
         mov r0, #0xc
         bl output_character
@@ -186,15 +193,18 @@ start   bl display_digit
         ldrb r5, [r1]
         bic r5, r5, #0x1f0
 
+        mov r0, r6
+
 iloop   ldrb r2, [r1]
         cmp r0, r2, lsr #4          ; detect new level
         andne r6, r2, #0xf0
         movne r0, r6, lsr #4
-        beq start
-        cmp r2, r5                  ; detect loss in life
-        bgt start
-        tst r0, #0xf0               ; finished all levels, game over
-        tstne r0, #0xf              ; out of lives, game over
+        bne start
+        bic r6, r2, #0x1f0
+        cmp r6, r5                  ; detect loss in life
+        blt start
+        tst r2, #0xf0               ; finished all levels, game over
+        tstne r2, #0xf              ; out of lives, game over
         bne iloop
 
         ; game over
@@ -302,11 +312,12 @@ FIQ_Handler
         orr r1, r1, #2
         str r1, [r0, #tir]
 
-        mov r0, #12
-        bl output_character
-
         bl fall_mario
         bl mv_barrel
+
+        ; clear prompt
+        mov r0, #0xc
+        bl output_character
 
         ldr r0, =map
         bl output_string
@@ -332,7 +343,8 @@ t1ir    ldr r0, =timer1
 
         bl mk_barrel
 
-        mov r0, #12
+        ; clear prompt
+        mov r0, #0xc
         bl output_character
 
         ldr r0, =map
@@ -352,14 +364,13 @@ t1ir    ldr r0, =timer1
 uart0   ldr r0, =u0base
         ldr r1, [r0, #u0iir]
         tst r1, #1
-        beq eint1
-
-        ; stop timer
-        ldr r0, =timer0
-        mov r1, #0
-        str r1, [r0, #tcr]
+        bne eint1
 
         bl mv_mario
+
+        ; clear prompt
+        mov r0, #0xc
+        bl output_character
 
         ldr r0, =map
         bl output_string
@@ -386,6 +397,10 @@ eint1   ldr r0, =extint
         str r1, [r0]
 
         bl pause_button
+
+        ; clear prompt
+        mov r0, #0xc
+        bl output_character
 
         ldr r0, =map
         bl output_string
@@ -432,19 +447,14 @@ bcloop  ldr r2, [r1, r8, lsl #2]
 
         ; parse position
         ; 18y + x
-        ; isolate y-position
-        mov r6, r2, lsr #4
-        and r6, r6, #0x1f
-        ; get 16y + x
-        and r3, r2, #0xff
-        and r7, r2, #0x100
-        add r3, r3, r7
-        ; get (16y + x) + 2y = 18y + x
-        add r3, r3, r6, lsl #1
+        and r3, r2, #0x1f0          ; isolate y-position, and get 16y
+        add r3, r3, r3, lsr #3      ; get 18y
+        and r6, r2, #0xf            ; isolate x-position
+        add r3, r3, r6              ; 18y + x
 
         ; get replaced character
         mov r5, r2, lsr #11
-        strb r5, [r4, r3]            ; restore character
+        strb r5, [r4, r3]           ; restore character
         bic r2, r2, #0xf800
         bic r2, r2, #0x70000
 
@@ -502,8 +512,10 @@ bcloop  ldr r2, [r1, r8, lsl #2]
 
 bfall   orr r2, r2, #0x400          ; set falling flag
         add r2, r2, #0x10           ; update position
+        ldrb r6, [r4, r3]
         add r2, r2, r6, lsl #11     ; save replaced character
         mov r6, #64
+        add r3, r3, #18
         strb r6, [r4, r3]           ; move barrel
 
         str r2, [r1, r8, lsl #2]            ; update barrel
@@ -570,19 +582,14 @@ mv_mario
 
         ; parse position
         ; 18y + x
-        ; isolate y-position
-        mov r6, r2, lsr #4
-        and r6, r6, #0x1f
-        ; get 16y + x
-        and r3, r2, #0xff
-        and r7, r2, #0x100
-        add r3, r3, r7
-        ; get (16y + x) + 2y = 18y + x
-        add r3, r3, r6, lsl #1
+        and r3, r2, #0x1f0          ; isolate y-position, and get 16y
+        add r3, r3, r3, lsr #3      ; get 18y
+        and r6, r2, #0xf            ; isolate x-position
+        add r3, r3, r6              ; 18y + x
 
         ; check if it's falling
-        add r3, r3, #18
-        ldr r6, [r4, r3]
+        add r6, r3, #18
+        ldr r6, [r4, r6]
         cmp r6, #32                 ; nothing supporting Mario
         ldmeqfd sp!, {r1-r8, lr}    ; let timer interrupts handle falling mario
         bxeq lr
@@ -592,7 +599,7 @@ mv_mario
         bxne lr
 
         ; get replaced character
-        mov r5, r2, lsr #11
+        mov r5, r2, lsr #10
 
         ; contextualize
         mov r7, #0
@@ -717,14 +724,14 @@ up      tst r7, #1
         mov r7, #0
         mvn r8, #0
 
-valid   str r5, [r4, r3]            ; restore character
+valid   strb r5, [r4, r3]            ; restore character
         bic r2, r2, #0xf800
         bic r2, r2, #0x70000
 
         ; make the move
         add r3, r3, r6              ; parsed position
         add r2, r2, r7              ; x-position
-        add r2, r2, r8, lsr #4      ; y-position
+        add r2, r2, r8, lsl #4      ; y-position
 
         ; save previous character
         ldrb r5, [r4, r3]
@@ -879,16 +886,10 @@ fall_mario
 
         ; parse position
         ; 18y + x
-        ; isolate y-position
-        mov r6, r2, lsr #4
-        and r6, r6, #0x1f
-        ; get 16y + x
-        and r3, r2, #0xff
-        and r7, r2, #0x100
-        add r3, r3, r7
-        ; get (16y + x) + 2y = 18y + x
-        add r3, r3, r6, lsl #1
-
+        and r3, r2, #0x1f0          ; isolate y-position, and get 16y
+        add r3, r3, r3, lsr #3      ; get 18y
+        and r6, r2, #0xf            ; isolate x-position
+        add r3, r3, r6              ; 18y + x
 
         tst r2, #0x200
         bne mfall                   ; fall because of jump
@@ -898,10 +899,11 @@ fall_mario
         cmp r6, #32                 ; fall because there's no support
         cmpne r6, #64               ; barrels are not support characters
         ldmnefd sp!, {r1-r7, lr}
+        bxne lr
 
         ; replaced character
-mfall   mov r5, r2, lsr #11
-        str r5, [r4, r3]
+mfall   mov r5, r2, lsr #10
+        strb r5, [r4, r3]
         bic r2, r2, #0xf800
         bic r2, r2, #0x70000
 
@@ -939,10 +941,12 @@ mfall   mov r5, r2, lsr #11
 
         cmp r7, #0x11
         ldmeqfd sp!, {r1-r7, lr}
+        bxeq lr
 
         ; lose a life
         cmp r7, #0x01
         ldmnefd sp!, {r1-r7, lr}
+        bxne lr
 
         ldr r7, =lvl_lives
         ldrb r6, [r7]
@@ -952,6 +956,7 @@ mfall   mov r5, r2, lsr #11
         strb r6, [r7]
 
         ldmfd sp!, {r1-r7, lr}
+        bx lr
 
 ; set_mario
 ; parameters: none
@@ -976,22 +981,21 @@ set_mario
 
         ; parse position
         ; 18y + x
-        ; isolate y-position
-        mov r6, r2, lsr #4
-        and r6, r6, #0x1f
-        ; get 16y + x
-        and r3, r2, #0xff
-        and r7, r2, #0x100
-        add r3, r3, r7
-        ; get (16y + x) + 2y = 18y + x
-        add r3, r3, r6, lsl #1
+        and r3, r2, #0x1f0          ; isolate y-position, and get 16y
+        add r3, r3, r3, lsr #3      ; get 18y
+        and r6, r2, #0xf            ; isolate x-position
+        add r3, r3, r6              ; 18y + x
 
         ; replaced character
-        mov r5, r2, lsr #11
-        str r5, [r4, r3]
+        mov r5, r2, lsr #10
+        strb r5, [r4, r3]
 
         ldr r2, =0x8151
         str r2, [r1]
+
+        mov r5, #36
+        ldr r3, =0x17b
+        strb r5, [r4, r3]
 
         ldmfd sp!, {r1-r7, lr}
         bx lr
