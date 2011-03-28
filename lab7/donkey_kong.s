@@ -854,6 +854,7 @@ itoa    mov r0, #10
         ldr r2, [r1, #10]       ; for detecting 1000 point reach
         cmp r3, r2
         ldmeqfd sp!, {r0-r2, lr}
+        bxeq lr
 
         ; 1000 points reached, gain a life
         ldr r0, =lvl_lives
@@ -863,6 +864,7 @@ itoa    mov r0, #10
         strb r1, [r0]
 
         ldmfd sp!, {r0-r2, lr}
+        bx lr
 
 ; fall_mario
 ; parameters: none
