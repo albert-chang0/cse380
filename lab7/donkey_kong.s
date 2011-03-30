@@ -71,7 +71,7 @@ game_over_swap = "|              |",10,13,\
                  "|              |",10,13
         align
 
-mario_pos dcd 0x10151
+mario_pos dcd 0x8151
 barrels dcd 0,0,0,0,0
 score dcw 0
 lvl_lives dcb 0x1f
@@ -311,8 +311,8 @@ FIQ_Handler
         orr r1, r1, #2
         str r1, [r0, #tir]
 
-        bl fall_mario
         bl mv_barrel
+        bl fall_mario
 
         ; clear prompt
         mov r0, #0xc
@@ -635,8 +635,7 @@ brlloop cmp r2, #5
 ;     0:3   x-position
 ;     4:8   y-position
 ;     9     jump
-;     10    show
-;    11:18  previous char
+;    10:17  previous char
 ;
 ; Some memory could be saved if there was no alignment since not all 32 bits
 ; are required to store information.
@@ -675,7 +674,7 @@ mv_mario
         bxne lr
 
         ; get replaced character
-        mov r5, r2, lsr #11
+        mov r5, r2, lsr #10
 
         ; contextualize
         mov r7, #0
@@ -811,7 +810,7 @@ valid   strb r5, [r4, r3]            ; restore character
 
         ; save previous character
         ldrb r5, [r4, r3]
-        orr r2, r2, r5, lsl #11
+        orr r2, r2, r5, lsl #10
 
         str r2, [r1]                ; save mario's position
 
@@ -986,11 +985,6 @@ fall_mario
         and r6, r2, #0xf            ; isolate x-position
         add r3, r3, r6              ; 18y + x
 
-        tst r2, #0x400
-        bic r2, r2, #0x400
-        strne r2, [r1]
-        ldmnefd sp!, {r1-r7, lr}
-
         tst r2, #0x200
         bne mfall                   ; fall because of jump
 
@@ -1002,7 +996,7 @@ fall_mario
         bxne lr
 
         ; replaced character
-mfall   mov r5, r2, lsr #11
+mfall   mov r5, r2, lsr #10
         strb r5, [r4, r3]
         bic r2, r2, #0xf800
         bic r2, r2, #0x70000
@@ -1013,7 +1007,7 @@ mfall   mov r5, r2, lsr #11
 
         ; save previous character
         ldrb r5, [r4, r3]
-        orr r2, r2, r5, lsl #11
+        orr r2, r2, r5, lsl #10
 
         ; update display
         mov r5, #36
@@ -1085,10 +1079,10 @@ set_mario
         add r3, r3, r6              ; 18y + x
 
         ; replaced character
-        mov r5, r2, lsr #11
+        mov r5, r2, lsr #10
         strb r5, [r4, r3]
 
-        ldr r2, =0x10151
+        ldr r2, =0x8151
         str r2, [r1]
 
         mov r5, #36
