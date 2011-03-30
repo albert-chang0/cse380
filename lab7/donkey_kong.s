@@ -31,6 +31,7 @@ pr equ 0xc
 tir equ 0x0
 tcr equ 0x4
 mr1 equ 0x1c
+mr2 equ 0x20
 vicbaseaddr equ 0xfffff000  ; vic base address
 vicintenable equ 0x10       ; interrupt enable
 vicintselect equ 0xc        ; select fiq or irq
@@ -70,7 +71,7 @@ game_over_swap = "|              |",10,13,\
                  "|              |",10,13
         align
 
-mario_pos dcd 0x8151
+mario_pos dcd 0x10151
 barrels dcd 0,0,0,0,0
 score dcw 0
 lvl_lives dcb 0x1f
@@ -100,6 +101,8 @@ game
         str r1, [r0, #pr]       ; set increment to ~0.01s
         mov r1, #26
         str r1, [r0, #mr1]      ; set initial speed to ~4char/s (+0.01s)
+        add r1, r1, #1
+        str r1, [r0, #mr2]      ; use MR2 as a fallback
 
         ; set initial barrel ejection frequency to ~1char/8s
         ldr r0, =timer1
@@ -107,6 +110,8 @@ game
         str r1, [r0, #pr]       ; set increment to ~0.4s
         mov r1, #21             ; set initial frequency to ~1barrel/8s (+0.4s)
         str r1, [r0, #mr1]
+        add r1, r1, #1
+        str r1, [r0, #mr2]      ; use MR2 as a fallback
 
         ; setup display, makes sure ports 0.7-0.13 are for gpio by zeroing them.
         ; setup push button
@@ -137,28 +142,16 @@ game
         ; r4 - timer1 address
         ; r5 - scratchpad
         ; r6 - scratchpad
+        ; r7 - level/lives
 
         ldr r1, =lvl_lives
         ldr r3, =timer0
         ldr r4, =timer1
 
-        ; show amount of lives
-        mov r0, #0xf
-        bl leds
-
         mov r0, #1
+        mov r7, #0xf
 
-start   bl display_digit
-
-        ; delete all barrels
-        ldr r5, =barrels
-        mov r6, #0
-        str r6, [r5]
-        str r6, [r5, #1]
-        str r6, [r5, #2]
-        str r6, [r5, #3]
-        str r6, [r5, #4]
-
+start   bl rm_barrels
         bl mk_barrel
         bl set_mario
 
@@ -193,14 +186,20 @@ start   bl display_digit
         ldrb r5, [r1]
         bic r5, r5, #0x1f0
 
-        mov r0, r6
+        ldrb r6, [r1]
+        and r0, r6, #0xf
+        mov r5, r0
+        bl leds                     ; show remaining lives
+        and r0, r6, #0x1f0
+        mov r0, r0, lsr #4
+        bl display_digit            ; show level
 
 iloop   ldrb r2, [r1]
         cmp r0, r2, lsr #4          ; detect new level
         andne r6, r2, #0xf0
         movne r0, r6, lsr #4
         bne start
-        bic r6, r2, #0x1f0
+        and r6, r2, #0xf
         cmp r6, r5                  ; detect loss in life
         blt start
         tst r2, #0xf0               ; finished all levels, game over
@@ -437,10 +436,10 @@ mv_barrel
         ldr r4, =map
         mov r8, #0
 
-bcloop  ldr r2, [r1, r8, lsl #2]
-        cmp r8, #5
+bcloop  cmp r8, #5
         ldmeqfd sp!, {r0-r8, lr}
         bxeq lr
+        ldr r2, [r1, r8, lsl #2]
         cmp r2, #0
         addeq r8, r8, #1
         beq bcloop
@@ -475,6 +474,7 @@ bcloop  ldr r2, [r1, r8, lsl #2]
         ldr r6, =rtcbase
         tst r7, #2_0001             ; if it could fall, should it?
         ldrne r0, [r6, #ctc]
+        movne r0, r0, lsr #1
         andne r0, r0, #1
         teq r7, #2_0100
         ldreq r0, [r6, #ctc]
@@ -506,6 +506,22 @@ bcloop  ldr r2, [r1, r8, lsl #2]
         str r2, [r1, r8, lsl #2]            ; update barrel
 
         ; collision detection goes here
+        ;ldr r5, =mario_pos
+        ;and r5, r5, #0x1f
+        ;and r5, r5, #0xf
+        ;and r6, r2, #0x1f
+        ;and r6, r2, #0xf
+        ;cmp r5, r6
+        addne r8, r8, #1
+        bne bcloop
+
+        ; lose a life
+        ;ldr r3, =lvl_lives
+        ;ldrb r7, [r3]
+        ;and r5, r6, #0x7
+        ;bic r6, r6, #0xf
+        ;orr r6, r6, r5, lsl #1
+        ;strb r6, [r3]
 
         add r8, r8, #1
         b bcloop
@@ -521,6 +537,22 @@ bfall   orr r2, r2, #0x400          ; set falling flag
         str r2, [r1, r8, lsl #2]            ; update barrel
 
         ; collision detection goes here
+        ;ldr r5, =mario_pos
+        ;and r5, r5, #0x1f
+        ;and r5, r5, #0xf
+        ;and r6, r2, #0x1f
+        ;and r6, r2, #0xf
+        ;cmp r5, r6
+        addne r8, r8, #1
+        bne bcloop
+
+        ; lose a life
+        ;ldr r3, =lvl_lives
+        ;ldrb r7, [r3]
+        ;and r5, r6, #0x7
+        ;bic r6, r6, #0xf
+        ;orr r6, r6, r5, lsl #1
+        ;strb r6, [r3]
 
         add r8, r8, #1
         b bcloop
@@ -550,6 +582,49 @@ seek    ldr r1, [r0], #4            ; find first available space in RAM
         ldmfd sp!, {r0, r1, lr}
         bx lr
 
+; rm_barrels
+; parameters: none
+; returns: none
+;
+; Removes all barrels
+rm_barrels
+        stmfd sp!, {r0-r6, lr}
+
+        ; r0 - address of barrels
+        ; r1 - loaded barrel
+        ; r2 - counter
+        ; r3 - parsed position
+        ; r4 - environment
+        ; r5 - replacement character
+        ; r6 - scratchpad
+
+        ldr r0, =barrels
+        ldr r4, =map
+        mov r2, #0
+
+brlloop cmp r2, #5
+        ldmeqfd sp!, {r0-r6, lr}
+        bxeq lr
+        ldr r1, [r0, r2, lsl #2]
+        cmp r1, #0
+        addeq r2, r2, #1
+        beq brlloop
+
+        ; parse position
+        ; 18y + x
+        and r3, r1, #0x1f0          ; isolate y-position, and get 16y
+        add r3, r3, r3, lsr #3      ; get 18y
+        and r6, r1, #0xf            ; isolate x-position
+        add r3, r3, r6              ; 18y + x
+
+        mov r5, r1, lsr #11
+        strb r5, [r4, r3]           ; restore character
+
+        mov r1, #0
+        str r1, [r0, r2, lsl #2]
+        add r2, r2, #1
+        b brlloop
+
 ; mv_mario
 ; parameters:
 ;     r0 - input
@@ -559,8 +634,9 @@ seek    ldr r1, [r0], #4            ; find first available space in RAM
 ; Information is packed together in the following format:
 ;     0:3   x-position
 ;     4:8   y-position
-;     9     controlled fall (jump)
-;    10:17  previous char
+;     9     jump
+;     10    show
+;    11:18  previous char
 ;
 ; Some memory could be saved if there was no alignment since not all 32 bits
 ; are required to store information.
@@ -599,7 +675,7 @@ mv_mario
         bxne lr
 
         ; get replaced character
-        mov r5, r2, lsr #10
+        mov r5, r2, lsr #11
 
         ; contextualize
         mov r7, #0
@@ -735,7 +811,7 @@ valid   strb r5, [r4, r3]            ; restore character
 
         ; save previous character
         ldrb r5, [r4, r3]
-        orr r2, r2, r5, lsl #10
+        orr r2, r2, r5, lsl #11
 
         str r2, [r1]                ; save mario's position
 
@@ -744,9 +820,24 @@ valid   strb r5, [r4, r3]            ; restore character
         strb r5, [r4, r3]
 
         ; collision detection goes here
+        ;mov r1, #0
+chb     ;ldr r0, =barrels
+        ;ldr r2, [r0, #1]
+        ;add r1, r1, #1
+        ;cmp r1, #5
+        ;beq safe
+        ;and r5, r5, #0x1f
+        ;and r5, r5, #0xf
+        ;and r6, r2, #0x1f
+        ;and r6, r2, #0xf
+        ;cmp r5, r6
+        ;bne safe
+        ;ldr r3, =lvl_lives
+        ;ldrb r7, [r3]
+        ;ldmfd sp!, {r0-r8, lr}
 
         ; potential points
-        ldr r0, =lvl_lives
+safe    ldr r0, =lvl_lives
         ldrb r0, [r0]
         mov r0, r0, lsr #4          ; clear out lives data
         add r0, r0, lsl #2          ; 5 * lvl
@@ -767,9 +858,9 @@ valid   strb r5, [r4, r3]            ; restore character
         ; process new level
         ldr r0, =lvl_lives
         ldrb r1, [r0]
-        mov r2, r1, lsr #4
         add r2, r1, #0x10           ; increment level
         strb r2, [r0]
+        mov r1, r1, lsr #4
         mov r0, r1, lsl #6
         add r0, r0, r1, lsl #5
         add r0, r0, r1, lsl #2      ; 100 * lvl
@@ -826,7 +917,7 @@ pause_button
 ; Performs all score handling. When score reaches 1000, add a new life.
 ; Also caps score to displayable digits.
 add_score
-        stmfd sp!, {r0-r2, lr}
+        stmfd sp!, {r0-r3, lr}
 
         ldr r1, =score
         ldrh r2, [r1]
@@ -834,7 +925,7 @@ add_score
         ldr r3, =99999
         add r2, r2, r0
         cmp r3, r2
-        movgt r2, r3
+        movlt r2, r3
         strh r2, [r1]
 
         mov r1, r0
@@ -853,17 +944,19 @@ itoa    mov r0, #10
         ldr r1, =map
         ldr r2, [r1, #10]       ; for detecting 1000 point reach
         cmp r3, r2
-        ldmeqfd sp!, {r0-r2, lr}
+        ldmeqfd sp!, {r0-r3, lr}
         bxeq lr
 
         ; 1000 points reached, gain a life
         ldr r0, =lvl_lives
         ldrb r1, [r0]
         and r2, r1, #0xf
-        orr r1, r1, r2, lsr #1
+        mov r2, r2, lsl #1
+        bic r2, r2, #0x10
+        orr r1, r1, r2
         strb r1, [r0]
 
-        ldmfd sp!, {r0-r2, lr}
+        ldmfd sp!, {r0-r3, lr}
         bx lr
 
 ; fall_mario
@@ -893,6 +986,11 @@ fall_mario
         and r6, r2, #0xf            ; isolate x-position
         add r3, r3, r6              ; 18y + x
 
+        tst r2, #0x400
+        bic r2, r2, #0x400
+        strne r2, [r1]
+        ldmnefd sp!, {r1-r7, lr}
+
         tst r2, #0x200
         bne mfall                   ; fall because of jump
 
@@ -904,7 +1002,7 @@ fall_mario
         bxne lr
 
         ; replaced character
-mfall   mov r5, r2, lsr #10
+mfall   mov r5, r2, lsr #11
         strb r5, [r4, r3]
         bic r2, r2, #0xf800
         bic r2, r2, #0x70000
@@ -915,7 +1013,7 @@ mfall   mov r5, r2, lsr #10
 
         ; save previous character
         ldrb r5, [r4, r3]
-        orr r2, r2, r5, lsl #10
+        orr r2, r2, r5, lsl #11
 
         ; update display
         mov r5, #36
@@ -939,14 +1037,12 @@ mfall   mov r5, r2, lsr #10
 
         str r2, [r1]
 
-        ; collision detection goes here
-
         cmp r7, #0x11
         ldmeqfd sp!, {r1-r7, lr}
         bxeq lr
 
         ; lose a life
-        cmp r7, #0x01
+        cmp r7, #0x1
         ldmnefd sp!, {r1-r7, lr}
         bxne lr
 
@@ -954,7 +1050,7 @@ mfall   mov r5, r2, lsr #10
         ldrb r6, [r7]
         and r5, r6, #0xf
         bic r6, r6, #0xf
-        orr r6, r6, r5, lsl #1
+        orr r6, r6, r5, lsr #1
         strb r6, [r7]
 
         ldmfd sp!, {r1-r7, lr}
@@ -989,10 +1085,10 @@ set_mario
         add r3, r3, r6              ; 18y + x
 
         ; replaced character
-        mov r5, r2, lsr #10
+        mov r5, r2, lsr #11
         strb r5, [r4, r3]
 
-        ldr r2, =0x8151
+        ldr r2, =0x10151
         str r2, [r1]
 
         mov r5, #36
