@@ -221,6 +221,11 @@ iloop   ldrb r2, [r1]
         add r1, r1, #18
         bl ln_swap
 
+        ; disable all interrupts
+        ldr r0, =vicbaseaddr
+        ldr r1, [r0, #vicintenable]
+        str r1, [r0, #vicintenclr]
+
         ldmfd sp!, {lr} ; Restore register lr from stack    
         bx lr       
 
