@@ -37,29 +37,29 @@ vicintenable equ 0x10       ; interrupt enable
 vicintselect equ 0xc        ; select fiq or irq
 vicintenclr equ 0x14        ; vic interrupt clear register
 
-map = "   SCORE:00000  ",10,13,\
-      "+--------------+",10,13,\
-      "|              |",10,13,\
-      "|   !          |",10,13,\
-      "|   ===H       |",10,13,\
-      "|      H       |",10,13,\
-      "|&     H       |",10,13,\
-      "|-------#---H  |",10,13,\
-      "|           H  |",10,13,\
-      "|           H  |",10,13,\
-      "|  ==H=========|",10,13,\
-      "|    H         |",10,13,\
-      "|    H         |",10,13,\
-      "|-#--------H-  |",10,13,\
-      "|          H   |",10,13,\
-      "|          H   |",10,13,\
-      "|  H===========|",10,13,\
-      "|  H           |",10,13,\
-      "|  H           |",10,13,\
-      "|-----------H  |",10,13,\
-      "|           H  |",10,13,\
-      "|           H  |",10,13,\
-      "+==============+",0
+output_buffer = "   SCORE:00000  ",10,13,\
+                "+--------------+",10,13,\
+                "|              |",10,13,\
+                "|   !          |",10,13,\
+                "|   ===H       |",10,13,\
+                "|      H       |",10,13,\
+                "|&     H       |",10,13,\
+                "|-------#---H  |",10,13,\
+                "|           H  |",10,13,\
+                "|           H  |",10,13,\
+                "|  ==H=========|",10,13,\
+                "|    H         |",10,13,\
+                "|    H         |",10,13,\
+                "|-#--------H-  |",10,13,\
+                "|          H   |",10,13,\
+                "|          H   |",10,13,\
+                "|  H===========|",10,13,\
+                "|  H           |",10,13,\
+                "|  H           |",10,13,\
+                "|-----------H  |",10,13,\
+                "|           H  |",10,13,\
+                "|           H  |",10,13,\
+                "+==============+",0
 
 pause_swap = "|              |",10,13,\
              "| P A U S E D  |",10,13,\
@@ -162,7 +162,7 @@ start   bl rm_barrels
         bl output_character
 
         ; initial display
-        ldr r0, =map
+        ldr r0, =output_buffer
         bl output_string
 
         ; reset timers
@@ -172,16 +172,18 @@ start   bl rm_barrels
 
         ; decrement match registers
         ldr r5, [r3, #mr1]          ; faster barrels
+        str r5, [r3, #mr2]          ; update fallback
         sub r5, r5, #1
         str r5, [r3, #mr1]
         ldr r5, [r4, #mr1]          ; more frequent barrels
+        str r5, [r4, #mr2]          ; update fallback
         sub r5, r5, #1
         str r5, [r3, #mr1]
 
         ; start timers
         mov r5, #1
         str r5, [r3, #tcr]
-        str r5, [r3, #tcr]
+        str r5, [r4, #tcr]
 
         ldrb r5, [r1]
         bic r5, r5, #0x1f0
@@ -195,6 +197,9 @@ start   bl rm_barrels
         bl display_digit            ; show level
 
 iloop   ldrb r2, [r1]
+        tst r2, #0xf0               ; finished all levels, game over
+        tstne r2, #0xf              ; out of lives, game over
+        beq gm_ovr
         cmp r0, r2, lsr #4          ; detect new level
         andne r6, r2, #0xf0
         movne r0, r6, lsr #4
@@ -202,12 +207,10 @@ iloop   ldrb r2, [r1]
         and r6, r2, #0xf
         cmp r6, r5                  ; detect loss in life
         blt start
-        tst r2, #0xf0               ; finished all levels, game over
-        tstne r2, #0xf              ; out of lives, game over
-        bne iloop
+        b iloop
 
         ; game over
-        ldr r0, =map
+gm_ovr  ldr r0, =output_buffer
         add r0, r0, #144
         ldr r1, =game_over_swap
         bl ln_swap
@@ -220,6 +223,14 @@ iloop   ldrb r2, [r1]
         add r0, r0, #18
         add r1, r1, #18
         bl ln_swap
+
+        ; clear prompt
+        mov r0, #0xc
+        bl output_character
+
+        ; show game over display
+        ldr r0, =output_buffer
+        bl output_string
 
         ; disable all interrupts
         ldr r0, =vicbaseaddr
@@ -323,7 +334,7 @@ FIQ_Handler
         mov r0, #0xc
         bl output_character
 
-        ldr r0, =map
+        ldr r0, =output_buffer
         bl output_string
 
         ; start timers
@@ -351,7 +362,7 @@ t1ir    ldr r0, =timer1
         mov r0, #0xc
         bl output_character
 
-        ldr r0, =map
+        ldr r0, =output_buffer
         bl output_string
 
         ; start timers
@@ -376,7 +387,7 @@ uart0   ldr r0, =u0base
         mov r0, #0xc
         bl output_character
 
-        ldr r0, =map
+        ldr r0, =output_buffer
         bl output_string
 
         ; start timers
@@ -393,8 +404,7 @@ FIQ_ext ldr r0, =timer0
 eint1   ldr r0, =extint
         ldr r1, [r0]
         tst r1, #2
-
-        bne FIQ_ext                     ; no pending interrupts
+        beq FIQ_ext                     ; no pending interrupts
 
         ; clear external interrupt
         orr r1, r1, #2
@@ -406,7 +416,7 @@ eint1   ldr r0, =extint
         mov r0, #0xc
         bl output_character
 
-        ldr r0, =map
+        ldr r0, =output_buffer
         bl output_string
 
         ldmfd sp!, {r0-r12, lr}
@@ -438,7 +448,7 @@ mv_barrel
         ; r8 - counter
 
         ldr r1, =barrels
-        ldr r4, =map
+        ldr r4, =output_buffer
         mov r8, #0
 
 bcloop  cmp r8, #5
@@ -510,54 +520,48 @@ bcloop  cmp r8, #5
 
         str r2, [r1, r8, lsl #2]            ; update barrel
 
-        ; collision detection goes here
-        ;ldr r5, =mario_pos
-        ;and r5, r5, #0x1f
-        ;and r5, r5, #0xf
-        ;and r6, r2, #0x1f
-        ;and r6, r2, #0xf
-        ;cmp r5, r6
+        ; collision detection
+        mov r5, r2, lsr #11
+        mov r6, #36
+        cmp r5, r6
         addne r8, r8, #1
         bne bcloop
 
         ; lose a life
-        ;ldr r3, =lvl_lives
-        ;ldrb r7, [r3]
-        ;and r5, r6, #0x7
-        ;bic r6, r6, #0xf
-        ;orr r6, r6, r5, lsl #1
-        ;strb r6, [r3]
+        ldr r7, =lvl_lives
+        ldrb r6, [r7]
+        and r5, r6, #0xf
+        bic r6, r6, #0xf
+        orr r6, r6, r5, lsr #1
+        strb r6, [r7]
 
         add r8, r8, #1
         b bcloop
 
 bfall   orr r2, r2, #0x400          ; set falling flag
         add r2, r2, #0x10           ; update position
-        ldrb r6, [r4, r3]
+        add r3, r3, #18             ; update parsed position
+        ldrb r6, [r4, r3]           ; get character from map
         add r2, r2, r6, lsl #11     ; save replaced character
         mov r6, #64
-        add r3, r3, #18
         strb r6, [r4, r3]           ; move barrel
 
         str r2, [r1, r8, lsl #2]            ; update barrel
 
-        ; collision detection goes here
-        ;ldr r5, =mario_pos
-        ;and r5, r5, #0x1f
-        ;and r5, r5, #0xf
-        ;and r6, r2, #0x1f
-        ;and r6, r2, #0xf
-        ;cmp r5, r6
+        ; collision detection
+        mov r5, r2, lsr #11
+        mov r6, #36
+        cmp r5, r6
         addne r8, r8, #1
         bne bcloop
 
         ; lose a life
-        ;ldr r3, =lvl_lives
-        ;ldrb r7, [r3]
-        ;and r5, r6, #0x7
-        ;bic r6, r6, #0xf
-        ;orr r6, r6, r5, lsl #1
-        ;strb r6, [r3]
+        ldr r7, =lvl_lives
+        ldrb r6, [r7]
+        and r5, r6, #0xf
+        bic r6, r6, #0xf
+        orr r6, r6, r5, lsr #1
+        strb r6, [r7]
 
         add r8, r8, #1
         b bcloop
@@ -580,7 +584,7 @@ seek    ldr r1, [r0], #4            ; find first available space in RAM
         str r1, [r0, #-4]
 
         ; draw barrel
-        ldr r0, =map
+        ldr r0, =output_buffer
         mov r1, #64
         strb r1, [r0, #110]
 
@@ -604,7 +608,7 @@ rm_barrels
         ; r6 - scratchpad
 
         ldr r0, =barrels
-        ldr r4, =map
+        ldr r4, =output_buffer
         mov r2, #0
 
 brlloop cmp r2, #5
@@ -658,7 +662,7 @@ mv_mario
 
         ldr r1, =mario_pos
         ldr r2, [r1]
-        ldr r4, =map
+        ldr r4, =output_buffer
 
         ; parse position
         ; 18y + x
@@ -823,22 +827,21 @@ valid   strb r5, [r4, r3]            ; restore character
         mov r5, #36
         strb r5, [r4, r3]
 
-        ; collision detection goes here
-        ;mov r1, #0
-chb     ;ldr r0, =barrels
-        ;ldr r2, [r0, #1]
-        ;add r1, r1, #1
-        ;cmp r1, #5
-        ;beq safe
-        ;and r5, r5, #0x1f
-        ;and r5, r5, #0xf
-        ;and r6, r2, #0x1f
-        ;and r6, r2, #0xf
-        ;cmp r5, r6
-        ;bne safe
-        ;ldr r3, =lvl_lives
-        ;ldrb r7, [r3]
-        ;ldmfd sp!, {r0-r8, lr}
+        ; collision detection
+        mov r5, r2, lsr #10
+        mov r6, #64
+        cmp r5, r6
+        bne safe
+
+        ; lose a life
+        ldr r7, =lvl_lives
+        ldrb r6, [r7]
+        and r5, r6, #0xf
+        bic r6, r6, #0xf
+        orr r6, r6, r5, lsr #1
+        strb r6, [r7]
+
+        ldmfd sp!, {r0-r8, lr}
 
         ; potential points
 safe    ldr r0, =lvl_lives
@@ -884,22 +887,8 @@ safe    ldr r0, =lvl_lives
 pause_button
         stmfd sp!, {r0, r1, lr}
 
-        ; toggle timer counters
-        ldr r0, =timer0
-        ldr r1, [r0, #tcr]
-        eor r1, r1, #1
-        str r1, [r0, #tcr]
-        ldr r1, =timer1
-        str r1, [r0, #tcr]
-
-        ; toggle uart receive
-        ldr r0, =pinsel0
-        ldr r1, [r0]
-        eor r1, r1, #4
-        str r1, [r0]
-
         ; toggle pause display
-        ldr r0, =map
+        ldr r0, =output_buffer
         add r0, r0, #180
         ldr r1, =pause_swap
         bl ln_swap
@@ -909,6 +898,25 @@ pause_button
         add r0, r0, #18
         add r1, r1, #18
         bl ln_swap
+
+        ; toggle uart receive
+        ldr r0, =pinsel0
+        ldr r1, [r0]
+        eor r1, r1, #4
+        str r1, [r0]
+
+        ; if uart is off, then paused
+        ; keep timers off
+        tst r1, #4
+        ldmeqfd sp!, {r0, r1, lr}
+        bxeq lr
+
+        ; otherwise turn timers back on
+        mov r1, #1
+        ldr r0, =timer0
+        str r1, [r0, #tcr]
+        ldr r0, =timer1
+        str r1, [r0, #tcr]
 
         ldmfd sp!, {r0, r1, lr}
         bx lr
@@ -927,13 +935,13 @@ add_score
         ldrh r2, [r1]
 
         ldr r3, =99999
-        add r2, r2, r0
-        cmp r3, r2
-        movlt r2, r3
-        strh r2, [r1]
+        add r0, r0, r2
+        cmp r3, r0
+        movlt r0, r3
+        strh r0, [r1]
 
         mov r1, r0
-        ldr r2, =map
+        ldr r2, =output_buffer
         ldr r3, [r2, #10]       ; for detecting 1000 point reach
         add r2, r2, #13
 
@@ -945,7 +953,7 @@ itoa    mov r0, #10
         cmp r1, #0
         bne itoa
 
-        ldr r1, =map
+        ldr r1, =output_buffer
         ldr r2, [r1, #10]       ; for detecting 1000 point reach
         cmp r3, r2
         ldmeqfd sp!, {r0-r3, lr}
@@ -980,7 +988,7 @@ fall_mario
         ; r7 - scratchpad1
 
         ldr r1, =mario_pos
-        ldr r4, =map
+        ldr r4, =output_buffer
         ldr r2, [r1]
 
         ; parse position
@@ -1073,7 +1081,7 @@ set_mario
         ; r7 - scratchpad1
 
         ldr r1, =mario_pos
-        ldr r4, =map
+        ldr r4, =output_buffer
         ldr r2, [r1]
 
         ; parse position
