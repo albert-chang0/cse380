@@ -327,7 +327,7 @@ FIQ_Handler
         orr r1, r1, #2
         str r1, [r0, #tir]
 
-        bl mv_barrel
+        bl mv_barrels
         bl fall_mario
 
         ; clear prompt
@@ -422,7 +422,7 @@ eint1   ldr r0, =extint
         ldmfd sp!, {r0-r12, lr}
         subs pc, lr, #4
 
-; mv_barrel
+; mv_barrels
 ; parameters: none
 ; returns: none
 ;
@@ -435,7 +435,7 @@ eint1   ldr r0, =extint
 ;
 ; Some memory could be saved if each barrel wasn't aligned since not all 32
 ; bits are not required to store information.
-mv_barrel
+mv_barrels
         stmfd sp!, {r0-r8, lr}
 
         ; r1 - address of current working barrel
