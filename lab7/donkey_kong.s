@@ -636,7 +636,8 @@ brlloop cmp r2, #5
         add r3, r3, r6              ; 18y + x
 
         mov r5, r1, lsr #11
-        strb r5, [r4, r3]           ; restore character
+        cmp r5, #36
+        strneb r5, [r4, r3]           ; smart restore character
 
         mov r1, #0
         str r1, [r0, r2, lsl #2]
@@ -1106,7 +1107,8 @@ set_mario
 
         ; replaced character
         mov r5, r2, lsr #10
-        strb r5, [r4, r3]
+        cmp r5, #64
+        strneb r5, [r4, r3]         ; smart replace character
 
         ldr r2, =0x8151
         str r2, [r1]
