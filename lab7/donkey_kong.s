@@ -1027,17 +1027,17 @@ mfall   mov r5, r2, lsr #10
         add r3, r3, #18
         add r2, r2, #0x10
 
-        ; collision detection
-        cmp r5, #64
-        beq ls_lf
-
         ; save previous character
         ldrb r5, [r4, r3]
+        cmp r5, #64
         orr r2, r2, r5, lsl #10
 
         ; update display
         mov r5, #36
         strb r5, [r4, r3]
+
+        ; collision detection
+        beq ls_lf
 
         mov r7, #0
 
