@@ -232,6 +232,12 @@ gm_ovr  ldr r0, =output_buffer
         ldr r0, =output_buffer
         bl output_string
 
+        ; update lives
+        ldr r1, =lvl_lives
+        ldrb r0, [r1]
+        and r0, r0, #0xf
+        bl leds
+
         ; disable all interrupts
         ldr r0, =vicbaseaddr
         ldr r1, [r0, #vicintenable]
@@ -1022,9 +1028,14 @@ mfall   mov r5, r2, lsr #10
         ldrb r5, [r4, r3]
         orr r2, r2, r5, lsl #10
 
+        ; collision detection
+        cmp r5, #64
         ; update display
         mov r5, #36
         strb r5, [r4, r3]
+
+        ; collision detection
+        beq ls_lf
 
         mov r7, #0
 
@@ -1053,7 +1064,7 @@ mfall   mov r5, r2, lsr #10
         ldmnefd sp!, {r1-r7, lr}
         bxne lr
 
-        ldr r7, =lvl_lives
+ls_lf   ldr r7, =lvl_lives
         ldrb r6, [r7]
         and r5, r6, #0xf
         bic r6, r6, #0xf
