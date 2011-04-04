@@ -243,6 +243,8 @@ gm_ovr  ldr r0, =output_buffer
         ldr r1, [r0, #vicintenable]
         str r1, [r0, #vicintenclr]
 
+stop    b stop
+
         ldmfd sp!, {lr} ; Restore register lr from stack    
         bx lr       
 
@@ -530,8 +532,7 @@ bcloop  cmp r8, #5
 
         ; collision detection
         mov r5, r2, lsr #11
-        mov r6, #36
-        cmp r5, r6
+        cmp r5, #36
         addne r8, r8, #1
         bne bcloop
 
@@ -850,6 +851,7 @@ valid   strb r5, [r4, r3]            ; restore character
         strb r6, [r7]
 
         ldmfd sp!, {r0-r8, lr}
+        bx lr
 
         ; potential points
 safe    ldr r0, =lvl_lives
@@ -1015,7 +1017,7 @@ fall_mario
         ldmnefd sp!, {r1-r7, lr}
         bxne lr
 
-        ; replaced character
+        ; replace character
 mfall   mov r5, r2, lsr #10
         strb r5, [r4, r3]
         bic r2, r2, #0xf800
@@ -1025,18 +1027,17 @@ mfall   mov r5, r2, lsr #10
         add r3, r3, #18
         add r2, r2, #0x10
 
+        ; collision detection
+        cmp r5, #64
+        beq ls_lf
+
         ; save previous character
         ldrb r5, [r4, r3]
         orr r2, r2, r5, lsl #10
 
-        ; collision detection
-        cmp r5, #64
         ; update display
         mov r5, #36
         strb r5, [r4, r3]
-
-        ; collision detection
-        beq ls_lf
 
         mov r7, #0
 
