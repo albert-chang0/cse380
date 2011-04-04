@@ -151,6 +151,16 @@ game
         mov r0, #1
         mov r7, #0xf
 
+        ; decrement match registers
+new_lvl ldr r5, [r3, #mr1]          ; faster barrels
+        str r5, [r3, #mr2]          ; update fallback
+        sub r5, r5, #1
+        str r5, [r3, #mr1]
+        ldr r5, [r4, #mr1]          ; more frequent barrels
+        str r5, [r4, #mr2]          ; update fallback
+        sub r5, r5, #1
+        str r5, [r3, #mr1]
+
 start   bl rm_barrels
         bl mk_barrel
         bl set_mario
@@ -168,17 +178,7 @@ start   bl rm_barrels
         ; reset timers
         mov r5, #2
         str r5, [r3, #tcr]
-        str r5, [r3, #tcr]
-
-        ; decrement match registers
-        ldr r5, [r3, #mr1]          ; faster barrels
-        str r5, [r3, #mr2]          ; update fallback
-        sub r5, r5, #1
-        str r5, [r3, #mr1]
-        ldr r5, [r4, #mr1]          ; more frequent barrels
-        str r5, [r4, #mr2]          ; update fallback
-        sub r5, r5, #1
-        str r5, [r3, #mr1]
+        str r5, [r4, #tcr]
 
         ; start timers
         mov r5, #1
@@ -203,7 +203,7 @@ iloop   ldrb r2, [r1]
         cmp r0, r2, lsr #4          ; detect new level
         andne r6, r2, #0xf0
         movne r0, r6, lsr #4
-        bne start
+        bne new_lvl
         and r6, r2, #0xf
         cmp r6, r5                  ; detect loss in life
         blt start
@@ -499,6 +499,7 @@ bcloop  cmp r8, #5
         andne r0, r0, #1
         teq r7, #2_0100
         ldreq r0, [r6, #ctc]
+        moveq r0, r0, lsr #1
         andeq r0, r0, #1
         orr r7, r7, r0, lsl #3
         tst r7, #2_1000
