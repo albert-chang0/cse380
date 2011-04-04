@@ -483,7 +483,8 @@ bcloop  cmp r8, #5
         ldrb r6, [r4, r7]
         mov r7, #0
         cmp r6, #32
-        orreq r7, r7, #2_1000       ; next line is ' '
+        cmpne r6, #36
+        orreq r7, r7, #2_1000       ; next line is ' '   or '$'
         cmp r6, #72
         orreq r7, r7, #2_0100       ; next line is 'H'
         cmp r6, #35
@@ -657,6 +658,8 @@ brlloop cmp r2, #5
 ; are required to store information.
 mv_mario
         stmfd sp!, {r0-r8, lr}
+
+        bl read_character
         
         ; r1 - address of mario's position
         ; r2 - mario's position
@@ -680,13 +683,13 @@ mv_mario
 
         ; check if it's falling
         add r6, r3, #18
-        ldr r6, [r4, r6]
-        cmp r6, #32                 ; nothing supporting Mario
-        ldmeqfd sp!, {r1-r8, lr}    ; let timer interrupts handle falling mario
+        ldrb r8, [r4, r6]
+        cmp r8, #32                 ; nothing supporting Mario
+        ldmeqfd sp!, {r0-r8, lr}    ; let timer interrupts handle falling mario
         bxeq lr
 
         tst r2, #0x200              ; mid-jump
-        ldmnefd sp!, {r1-r8, lr}
+        ldmnefd sp!, {r0-r8, lr}
         bxne lr
 
         ; get replaced character
@@ -708,8 +711,6 @@ mv_mario
         ldrb r6, [r4, r8]
         cmp r6, #0x7c
         orreq r7, r7, #2_1000       ; previous character is '|'
-
-        bl read_character
 
         ; r6 - delta parsed position
         ; r7 - delta x position
@@ -1011,7 +1012,6 @@ fall_mario
         add r6, r3, #18
         ldrb r6, [r4, r6]
         cmp r6, #32                 ; fall because there's no support
-        cmpne r6, #64               ; barrels are not support characters
         ldmnefd sp!, {r1-r7, lr}
         bxne lr
 
