@@ -59,7 +59,14 @@ output_buffer = "   SCORE:00000  ",10,13,\
                 "|-----------H  |",10,13,\
                 "|           H  |",10,13,\
                 "|           H  |",10,13,\
-                "+==============+",0
+                "+==============+",10,13,\
+                " Controls:",10,13,\
+                "   w - up",10,13,\
+                "   a - left",10,13,\
+                "   s - down",10,13,\
+                "   d - right",10,13,\
+                "   A - jump left",10,13,\
+                "   D - jump right",0
 
 pause_swap = "|              |",10,13,\
              "| P A U S E D  |",10,13,\
@@ -73,7 +80,7 @@ game_over_swap = "|              |",10,13,\
 
 mario_pos dcd 0x8151
 barrels dcd 0,0,0,0,0
-score dcw 0
+score dcd 0
 lvl_lives dcb 0x1f
         align
 
@@ -142,14 +149,12 @@ game
         ; r4 - timer1 address
         ; r5 - scratchpad
         ; r6 - scratchpad
-        ; r7 - level/lives
 
         ldr r1, =lvl_lives
         ldr r3, =timer0
         ldr r4, =timer1
 
         mov r0, #1
-        mov r7, #0xf
 
         ; decrement match registers
 new_lvl ldr r5, [r3, #mr1]          ; faster barrels
@@ -185,12 +190,9 @@ start   bl rm_barrels
         str r5, [r3, #tcr]
         str r5, [r4, #tcr]
 
-        ldrb r5, [r1]
-        bic r5, r5, #0x1f0
-
         ldrb r6, [r1]
         and r0, r6, #0xf
-        mov r5, r0
+        mov r5, r0                  ; save, r0 also needs to be used to show level
         bl leds                     ; show remaining lives
         and r0, r6, #0x1f0
         mov r0, r0, lsr #4
@@ -943,17 +945,17 @@ add_score
         stmfd sp!, {r0-r3, lr}
 
         ldr r1, =score
-        ldrh r2, [r1]
+        ldr r2, [r1]
+        add r0, r0, r2          ; store score
 
         ldr r3, =99999
-        add r0, r0, r2
         cmp r3, r0
-        movlt r0, r3
-        strh r0, [r1]
+        movlt r0, r3            ; cap at 99999 (displayable score)
+        str r0, [r1]           ; which is also the limit of mod/divide routine
 
         mov r1, r0
         ldr r2, =output_buffer
-        ldr r3, [r2, #10]       ; for detecting 1000 point reach
+        ldrb r3, [r2, #10]       ; for detecting 1000 point reach
         add r2, r2, #13
 
         ; convert binary integer to string of integers for printing
@@ -965,7 +967,7 @@ itoa    mov r0, #10
         bne itoa
 
         ldr r1, =output_buffer
-        ldr r2, [r1, #10]       ; for detecting 1000 point reach
+        ldrb r2, [r1, #10]       ; for detecting 1000 point reach
         cmp r3, r2
         ldmeqfd sp!, {r0-r3, lr}
         bxeq lr
@@ -978,6 +980,9 @@ itoa    mov r0, #10
         bic r2, r2, #0x10
         orr r1, r1, r2
         strb r1, [r0]
+
+        and r0, r1, #0xf
+        bl leds
 
         ldmfd sp!, {r0-r3, lr}
         bx lr
