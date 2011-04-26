@@ -1,0 +1,16 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (swap) {Swap lines between output buffer and pause buffer};
+        \node[block, below of=swap] (uart) {Toggle UART input};
+        \node[decision, below of=uart] (paused) {Can UART receive?};
+        \node[block, below of=paused, node distance=3cm] (on) {Turn timers back on};
+        \node[cloud, below of=on] (stop) {Stop};
+        \path[line] (origin) -- (swap);
+        \path[line] (swap) -- (uart);
+        \path[line] (uart) -- (paused);
+        \path[line] (paused) -- node[near start] {yes} (on);
+        \path[line] (on) -- (stop);
+        \path[line] (paused) -- node[near start] {no} +(-3,0) |- (stop);
+    \end{tikzpicture}
+\end{center}

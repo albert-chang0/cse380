@@ -1,0 +1,20 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[decision, below of=origin] (lf) {Character is line feed?};
+        \node[decision, below of=lf, node distance=4cm] (cr) {Character is carriage return?};
+        \node[decision, below of=cr, node distance=4cm] (null) {Character is null?};
+        \node[block, below of=null, node distance=3cm] (swap) {Swap characters};
+        \node[block, below of=swap] (next) {Next character};
+        \node[cloud, right of=null, node distance=3cm] (stop) {Stop};
+        \path[line] (origin) -- (lf);
+        \path[line] (lf) -- node[near start] {no} +(-3,0) |- (null);
+        \path[line] (lf) -- node[near start] {yes} (cr);
+        \path[line] (cr) -- node[near start] {no} (null);
+        \path[line] (null) -- node[near start] {no} (swap);
+        \path[line] (swap) -- (next);
+        \path[line] (null) -- node[near start] {yes} (stop);
+        \path[line] (cr) -| node[near start] {yes} (stop);
+        \path[line] (next) -- +(5,0) |- (lf);
+    \end{tikzpicture}
+\end{center}

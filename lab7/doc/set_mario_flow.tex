@@ -1,0 +1,15 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (parse) {Parse position};
+        \node[block, below of=parse] (restore) {Restore previous character};
+        \node[block, below of=restore] (ram) {Update Mario in RAM};
+        \node[block, below of=ram] (display) {Update output buffer};
+        \node[cloud, below of=display] (stop) {Stop};
+        \path[line] (origin) -- (parse);
+        \path[line] (parse) -- (restore);
+        \path[line] (restore) -- (ram);
+        \path[line] (ram) -- (display);
+        \path[line] (display) -- (stop);
+    \end{tikzpicture}
+\end{center}

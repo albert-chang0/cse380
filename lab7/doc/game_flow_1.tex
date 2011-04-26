@@ -1,0 +1,34 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (rtc) {Start RTC};
+        \node[block, below of=rtc] (uart) {Initialize UART0};
+        \node[block, below of=uart] (interrupts) {Initialize interrupts};
+        \node[block, below of=interrupts] (timers) {Setup timer increments};
+        \node[block, below of=timers] (gpio) {Setup GPIO for LEDs, 7-segment display, and push button};
+        \node[block, below of=gpio] (dec) {Increase barrel ejection frequency and speed};
+        \node[block, below of=dec] (clear) {Clear Map of barrels};
+        \node[block, below of=clear] (first) {Eject first barrel};
+        \node[block, below of=first] (mario) {Reset Mario's position};
+        \node[block, below of=mario] (display) {Show initial display};
+        \node[block, below of=display] (startt) {Start timers};
+        \node[block, below of=startt] (lives) {Show remaining lives};
+        \node[block, below of=lives] (level) {Show current level};
+        \path[line] (origin) -- (rtc);
+        \path[line] (rtc) -- (uart);
+        \path[line] (uart) -- (interrupts);
+        \path[line] (interrupts) -- (timers);
+        \path[line] (timers) -- (gpio);
+        \path[line] (gpio) -- (dec);
+        \path[line] (dec) -- (clear);
+        \path[line] (clear) -- (first);
+        \path[line] (first) -- (mario);
+        \path[line] (mario) -- (display);
+        \path[line] (display) -- (startt);
+        \path[line] (startt) -- (lives);
+        \path[line] (lives) -- (level);
+        \path[line, dashed] (level) -- +(0,-1.5);
+        \draw[dashed] (level) +(5,-1.5) -- +(5,0);
+        \path[line] (level) +(5,0) |- (dec);`
+    \end{tikzpicture}
+\end{center}

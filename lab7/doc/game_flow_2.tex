@@ -1,0 +1,23 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[decision, below of=level] (win) {Has all levels been completed?};
+        \node[decision, below of=win, node distance=4cm] (lose) {Does Mario have any lives left?};
+        \node[decision, below of=lose, node distance=4cm] (new) {Has a level been completed?};
+        \node[decision, below of=new, node distance=4cm] (death) {Did Mario lose a life?};
+        \node[block, below of=death, node distance=4cm] (gameover) {Show game over screen};
+        \node[block, below of=gameover] (off) {Disable all interrupts};
+        \node[cloud, below of=off] (stop) {Stop};
+        \path[line, dashed] (win) +(0,2.5) -- (win);
+        \path[line] (win) -- node[near start] {no} (lose);
+        \path[line] (lose) -- node[near start] {yes} (new);
+        \path[line] (new) -- node[near start] {no} (death);
+        \path[line] (win) -| node[near start] {yes} +(-5,-16) -- (gameover);
+        \draw (lose) -- node[near start] {no} +(-5,0);
+        \draw (win) +(5,0) |- node[near end] {yes} (death);
+        \path[line, dashed] (win) +(5,0) -- +(5,2.5);
+        \draw (new) -- node[near start] {yes} +(3,0);
+        \path[line] (gameover) -- (off);
+        \path[line] (off) -- (stop);
+        \path[line] (death) -- node[near start] {no} +(0,-2.5) -| +(3,12) -- (win);
+    \end{tikzpicture}
+\end{center}

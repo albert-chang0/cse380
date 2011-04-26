@@ -1,0 +1,298 @@
+\documentclass[letterpaper,10pt]{article}
+
+\usepackage{tikz}
+\usepackage{caption}
+
+\setlength{\headheight}{0in}
+\setlength{\marginparsep}{0in}
+\setlength{\footskip}{0in}
+\setlength{\headsep}{0in}
+\setlength{\marginparwidth}{0in}
+\setlength{\marginparpush}{0in}
+\setlength{\voffset}{0in}
+\setlength{\hoffset}{-1in}
+\setlength{\voffset}{-1in}
+\setlength{\oddsidemargin}{0.75in}
+\setlength{\evensidemargin}{0.75in}
+\setlength{\topmargin}{0.75in}
+\setlength{\textheight}{9.5in}
+\setlength{\textwidth}{7in}
+\setlength{\parindent}{0in}
+\setlength{\parskip}{10pt} %change this to match font size
+
+\pagestyle{empty}
+\definecolor{gray}{gray}{0.75}
+\usetikzlibrary{shapes,arrows,calc}
+
+% define block styles
+\tikzstyle{line} = [draw, -latex']
+\tikzstyle{block} = [draw, rectangle, text centered, minimum height=2em]
+\tikzstyle{mlblock} = [draw, rectangle, text width=10em, text centered, minimum height=2em]
+\tikzstyle{decision} = [draw, diamond, text width=4.5em, text centered, node distance=3cm, inner sep=0pt]
+\tikzstyle{cloud} = [draw, rectangle, text centered, rounded corners, minimum height=2em]
+
+\begin{document}
+    Albert Chang and Nipun Chopra\\
+    CSE-380 A6\\
+    University at Buffalo\\
+    Dr. Kris Schindler\\
+    April 26, 2011\\
+    \textit{Lab 7 Documentation}
+
+    The objective of Lab 7 was to recreate the classic Donkey Kong arcade game.
+    In this game, the princess, whom was captured, needs to be saved. This is
+    accomplished by dodging barrels on the way to the top of the map. Mario moves
+    left or right freely, and jump anytime he is walking on a floor. He cannot
+    jump off a ladder. Jumping action must be shown. Mario dies either when he
+    collides with a barrel or falls from a floor. If Mario jumps over a barrel,
+    five times the current level of the game is awarded. The only other time
+    points are awarded is when Mario reaches the princess, then 100 times the
+    current level is awarded. Every 1000 points, a life is gained. The barrels
+    roll from top to bottom and has a 50\% chance of falling down any ladder it
+    comes across.
+
+    For the interface, the classic WASD game keys were used to control Mario.
+    The serial port handled outputting as well as accepting key-presses. The
+    LEDs indicated the amount of lives left. The seven-segment display
+    indicated which level the player is on. The other input was from the
+    momentary push button, which pauses the game. The map was already provided
+    for us as such:
+
+    \begin{center}
+        \begin{minipage}{30mm}
+\begin{verbatim}
+   SCORE:00000  
++--------------+
+|              |
+|   !          |
+|   ===H       |
+|      H       |
+|&@    H       |
+|-------#---H  |
+|           H  |
+|           H  |
+|  ==H=========|
+|    H         |
+|    H         |
+|-#--------H-  |
+|          H   |
+|          H   |
+|  H===========|
+|  H           |
+|  H           |
+|-----------H  |
+|           H  |
+|$          H  |
++==============+
+\end{verbatim}
+        \end{minipage}
+    \captionof{figure}{Donkey Kong Map.}
+    \end{center}
+
+    Several helper routines were created to help organize the code since it
+    was a relatively complex program. When idling, the program is in an
+    infinite loop in the \textit{game} routine, which is called by the C
+    wrapper. Unlike the previous labs where an infinite loop outside our
+    control, a recursive branching instruction in \textit{Startup.s}, this 
+    infinite loop needed to have a break condition. The break conditions are
+    either when the map needs to be reset or when game over is reached. The map
+    is reset when either a new level is reached or when Mario loses a life.
+    Game over is reached when either all levels have been completed or when all
+    lives have expired. Besides that, all the \textit{game} routine does is
+    set up all interfaces. Figs. \ref{flo:game 1} and \ref{flo:game 2} show
+    the flowchart of the \textit{game} routine.
+
+    \begin{minipage}{\linewidth}
+        \input{game_flow_1}
+        \captionof{figure}{Flowchart of \textit{game} routine.}
+        \label{flo:game 1}
+    \end{minipage}
+
+    \begin{minipage}{\linewidth}
+        \input{game_flow_2}
+        \captionof{figure}{Flowchart of \textit{game} routine, continued.}
+        \label{flo:game 2}
+    \end{minipage}
+
+    The \textit{interrupt\_init} routine simply enables and classifies TIMER0,
+    TIMER1, UART0, and EINT1 as fast interrupts. Fig. \ref{flo:interrupt_init}
+    shows how the routine works.
+
+    \begin{figure}[hp]
+        \input{interrupt_init_flow}
+        \caption{Flowchart of \textit{interrupt\_init} routine.}
+        \label{flo:interrupt_init}
+    \end{figure}
+
+    The \textit{FIQ\_Handler} is the backbone of the program. It is the routine
+    which really makes the entire program work. By itself it doesn't do anything,
+    but it acts as a hub, connecting interrupts with their proper routines. Fig.
+    \ref{flo:fiq_handler} shows how the program works.
+
+    \begin{figure}[hp]
+        \input{fiq_handler_flow}
+        \caption{Flowchart of \textit{FIQ\_Handler} routine.}
+        \label{flo:fiq_handler}
+    \end{figure}
+
+    One of the big routine is \textit{mv\_barrel}, which goes through all the
+    barrels, and updates them. Each barrel takes 32 bits to store, but only 19
+    bits are actually used. Bits 0--3 store the x-position, bits 4--8 store
+    the y-position, bits 9--10 store the direction, and bits 11--18 store the
+    character it replaced on the map. Pathing is determined directly from
+    the context information. In situations where it could fall, and the randomizer
+    selects it to fall, it provides the same context as a guaranteed fall
+    condition (no support under barrel). It sets a fall flag, which is used to
+    change direction when the barrel lands (has support again). A barrel is
+    deleted when it is at the end of the map. Refer to fig. \ref{flo:mv_barrels}.
+
+    \begin{figure}[hp]
+        \input{mv_barrels_flow}
+        \caption{Flowchart of \textit{mv\_barrels} routine.}
+        \label{flo:mv_barrels}
+    \end{figure}
+
+    The \textit{mk\_barrel} is a straight forward routine to generate a new
+    barrel. Since new barrels always have the same starting data, it is hard
+    coded. Refer to fig. \ref{flo:mk_barrel}.
+
+    \begin{figure}[hp]
+        \input{mk_barrel_flow}
+        \caption{Flowchart of \textit{mk\_barrel} routine.}
+        \label{flo:mk_barrel}
+    \end{figure}
+
+    The \textit{rm\_barrels} routine is a little bit more involved than the
+    \textit{mk\_barrel}. This routine deletes all barrels on the map. Refer to
+    fig. \ref{flo:rm_barrels}. This routine uses a smart replace algorithm, when
+    replacing the previous character. The only difference is that since Mario
+    and a barrel can occupy the same place, a blacklist of characters is kept
+    so only the original map is restored.
+
+    \begin{figure}[hp]
+        \input{rm_barrels_flow}
+        \caption{Flowchart of \textit{rm\_barrels} routine.}
+        \label{flo:rm_barrels}
+    \end{figure}
+
+    The \textit{mv\_mario} routine is another very involved routine. A move is 
+    only made if the contextualizer allows a particular move. Mario also takes
+    up 32 bits of RAM. However, he actually only needs 18 bits. Bits 0--3 store
+    the x-position, bits4--8 store the y-position, bit 9 stores whether he
+    jumped or not, and bits 10--17 is the character he replaced on the map.
+    Figs. \ref{flo:mv_mario_1} and \ref{flo:mv_mario_2} show how the methods
+    work.
+
+    \begin{minipage}{\linewidth}
+        \input{mv_mario_flow_1}
+        \captionof{figure}{Flowchart of \textit{mv\_mario} routine.}
+        \label{flo:mv_mario_1}
+    \end{minipage}
+
+    \begin{minipage}{\linewidth}
+        \input{mv_mario_flow_2}
+        \captionof{figure}{Flowchart of \textit{mv\_mario} routine, continued.}
+        \label{flo:mv_mario_2}
+    \end{minipage}
+
+    To toggle between paused and play state, a separate \textit{pause\_button}
+    routine was created. It's a fairly straight forward routine as can be
+    seen by fig. \ref{flo:pause_button}.
+
+    \begin{figure}[hp]
+        \input{pause_button_flow}
+        \caption{Flowchart of \textit{pause\_button} routine.}
+        \label{flo:pause_button}
+    \end{figure}
+
+    A specific \textit{add\_score} routine was created to handle the adding of
+    score, which also adds a life every 1000 points. The point detection isn't
+    done by reading the actual score, just a change in the output buffer at the
+    thousands place. The only flaw in this is if somehow the player managed to
+    get a multiple of 10,000 points, an impossible feat. Refer to fig.
+    \ref{flo:add_score}. Unlike lives, which numerically aren't stored, a
+    numerical representation of the score is stored. This is because converting
+    from ASCII to integer takes up unnecessary time, and only a word is taken
+    when storing the score.
+
+    \begin{figure}[hp]
+        \input{add_score_flow}
+        \caption{Flowchart of \textit{add\_score} routine.}
+        \label{flo:add_score}
+    \end{figure}
+
+    The last really big routine is \textit{fall\_mario}. A separate routine is
+    created for this, instead of sticking it with \textit{mv\_mario} because
+    they are called on at different times, and \textit{fall\_mario} reads
+    input. Refer to figs. \ref{flo:fall_mario_1} and \ref{flo:fall_mario_2}
+    to see how the routine works.
+
+    \begin{minipage}{\linewidth}
+        \input{fall_mario_flow_1}
+        \captionof{figure}{Flowchart of \textit{fall\_mario} routine.}
+        \label{flo:fall_mario_1}
+    \end{minipage}
+
+    \begin{minipage}{\linewidth}
+        \input{fall_mario_flow_2}
+        \captionof{figure}{Flowchart of \textit{fall\_mario} routine, continued.}
+        \label{flo:fall_mario_2}
+    \end{minipage}
+
+    Another straight forward routine is \textit{set\_mario}, which resets mario
+    to the end of the map. It works the same way \textit{rm\_barrels}, including
+    the smart replace algorithm. Of course, the difference is it only does it
+    once with Mario, and the starting information for Mario is different.
+    Refer to fig. \ref{flo:set_mario}.
+
+    \begin{figure}[hp]
+        \input{set_mario_flow}
+        \caption{Flowchart of \textit{set\_mario} routine.}
+        \label{flo:set_mario}
+    \end{figure}
+
+    The final helper routine for this project is the \textit{ln\_swap}. Assuming
+    the length of both lines are the same (terminated by a LFCR, CRLF, or NULL),
+    the lines are swapped in RAM. It's a fairly simple routine, since no
+    checks are done to ensure the assumption is true. Refer to fig.
+    \ref{flo:ln_swap}.
+
+    \begin{figure}[hp]
+        \input{ln_swap_flow}
+        \caption{Flowchart of \textit{ln\_swap} routine.}
+        \label{flo:ln_swap}
+    \end{figure}
+
+    Besides that, all other routines were taken from the common library shared
+    between lab assignments. The only difference with the library was the
+    inclusion of the \textit{mod}/\textit{division} routine, to help facilitate
+    the conversion of int to string. All of their flowcharts and implementations
+    have not been changed.
+
+    Some other points to notice with this lab was the life was not numerically
+    stored, this way the integer wouldn't have to be converted to the corresponding
+    LEDs. Instead the LEDs kept track of the lives, and we stored the LEDs state
+    in RAM. Since it only took a nibble, it was coupled with the current level
+    to save space. Together, the level and lives occupy a byte of RAM.
+
+    The original design of the random number generator was not used since it
+    over complicated the program. The proposed algorithm was abandoned by porting
+    over the GNU/Linux \textit{random()} function, which generates a table using
+    a linear congruential generator. Then those numbers are used to further
+    randomness by using a linear shift register. Although it makes an excellent
+    random number generator for games, our number generator only had two possible
+    outcomes: 0 or 1. The algoirithm requiring entropy detection and generating
+    entropy would've taken too much time and space, and is considered to be
+    outside the scope of games anyway. In the end, a random number was generated
+    based on the RTC. However, instead of just taking the least significant bit,
+    the second least significant bit was taken. The least significant bit has
+    too high of a period such taht if there's ane even number of lines called
+    upon between calls, it will always produce the same number.
+
+    Albert Chang worked on the harder part of the program, which were the
+    \textit{game}, \textit{mv\_barrels}, \textit{mv\_mario}, \textit{fall\_mario},
+    \textit{add\_score}, \textit{rm\_barrels}, final assembly, and debugging.
+    Nipun Chopra worked on the easier aspects of the program, which included
+    the \textit{interrupt\_init}, \textit{FIQ\_Handler}, \textit{mk\_barrels},
+    \textit{pause\_button}, and \textit{set\_mario}.
+\end{document}

@@ -1,0 +1,30 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[decision, below of=origin] (cntr) {6th barrel?};
+        \node[cloud, right of=cntr, node distance=5cm] (stop) {Stop};
+        \node[block, below of=cntr, node distance=3cm] (parse) {Parse position};
+        \node[block, below of=parse] (restore) {Restore previous character};
+        \node[block, below of=restore] (context) {Contextualize the barrel};
+        \node[block, below of=context] (pathing) {Determine next move};
+        \node[decision, below of=pathing] (collision0) {Is replacement character Mario?};
+        \node[block, right of=collision0, node distance=5cm] (die0) {Lose a life};
+        \node[block, below of=collision0, node distance=3cm] (update) {Move barrel};
+        \node[decision, below of=update] (collision1) {Is the new position Mario?};
+        \node[block, below of=collision1, node distance=3cm] (next) {Get next barrel};
+        \path[line] (origin) -- (cntr);
+        \path[line] (cntr) -- node[near start] {no} (parse);
+        \path[line] (cntr) -- node[near start] {yes} (stop);
+        \path[line] (parse) -- (restore);
+        \path[line] (restore) -- (context);
+        \path[line] (context) -- (pathing);
+        \path[line] (pathing) -- (collision0);
+        \path[line] (collision0) -- node[near start] {yes} (die0);
+        \path[line] (die0) -- (stop);
+        \path[line] (collision0) -- node[near start] {no} (update);
+        \path[line] (update) -- (collision1);
+        \path[line] (collision1) -| node[near start] {yes} (die0);
+        \path[line] (collision1) -- node[near start] {no} (next);
+|       \path[line] (next) -- +(-3,0) |- (cntr);
+    \end{tikzpicture}
+\end{center}

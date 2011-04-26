@@ -1,0 +1,17 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[decision, below of=land, node distance=4cm] (chjump) {Mario jumped?};
+        \node[block, below of=chjump, node distance=3cm] (unset) {Unset jump flag};
+        \node[block, right of=chjump, node distance=5cm] (die) {Lose a life};
+        \node[cloud, below of=unset] (stop) {Stop};
+        \path[line, dashed] (chjump) +(0,2.5) -- (chjump);
+        \path[line] (chjump) -- node[near start] {yes} (unset);
+        \path[line] (chjump) -- node[near start] {no} (die);
+        \path[line] (unset) -- (stop);
+        \path[line] (die) |- (stop);
+        \draw[dashed] (chjump) +(-5,2.5) -- +(-5,0);
+        \draw[dashed] (chjump) +(-3,2.5) -- +(-3,0);
+        \path[line] (chjump) +(-5,0) |- (stop);
+        \path[line] (chjump) +(-3,0) |- (unset);
+    \end{tikzpicture}
+\end{center}

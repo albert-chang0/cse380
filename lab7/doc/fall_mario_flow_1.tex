@@ -1,0 +1,27 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (parse) {Parse position};
+        \node[decision, below of=parse] (jump) {Mario jumped?};
+        \node[decision, below of=jump, node distance=4cm] (fall) {Mario unsupported?};
+        \node[block, below of=fall, node distance=3cm] (restore) {Replace previous character};
+        \node[block, below of=restore] (update) {Make Mario fall};
+        \node[decision, below of=update] (collision) {Mario collide with barrel?};
+        \node[decision, below of=collision, node distance=4cm] (land) {Mario landed?};
+        \path[line] (origin) -- (parse);
+        \path[line] (parse) -- (jump);
+        \path[line] (jump) -- node[near start] {no} (fall);
+        \path[line] (fall) -- node[near start] {yes} (restore);
+        \path[line] (restore) -- (update);
+        \path[line] (update) -- (collision);
+        \path[line] (collision) -- node[near start] {no} (land);
+        \path[line, dashed] (land) -- node[near start] {yes} +(0,-2.5);
+        \path[line] (jump) -- node[near start] {yes} +(3,0) |- (restore);
+        \draw (fall) -- node[near start] {no} +(-5,0) -- +(-5,-11.5);
+        \draw (collision) -- node[near start] {yes} +(5,0) -- +(5,-4);
+        \draw (land) -- node[near start] {no} +(-3,0);
+        \path[line, dashed] (land) +(-5,0) -- +(-5,-2.5);
+        \path[line, dashed] (land) +(5,0) -- +(5,-2.5);
+        \path[line, dashed] (land) +(-3,0) -- +(-3,-2.5);
+    \end{tikzpicture}
+\end{center}

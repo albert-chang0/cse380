@@ -1,0 +1,54 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (stopt) {Stop timers};
+        \node[decision, below of=stopt] (timer0) {Time to move barrels?};
+        \node[block, below of=timer0, node distance=3cm] (reset0) {Reset TIMER0};
+        \node[block, below of=reset0] (mvbarrels) {Move barrels};
+        \node[block, below of=mvbarrels] (fall) {Make Mario Fall};
+        \node[block, below of=fall] (display0) {Update display};
+        \node[block, below of=display0] (start0) {Start timers};
+        \node[decision, right of=timer0, node distance=4cm] (timer1) {Time to create a barrel?};
+        \node[block, below of=timer1, node distance=3cm] (reset1) {Reset TIMER1};
+        \node[block, below of=reset1] (mkbarrel) {Make new barrel};
+        \node[block, below of=mkbarrel] (display1) {Update display};
+        \node[block, below of=display1] (start1) {Start timers};
+        \node[decision, right of=timer1, node distance=4cm] (uart) {Was a key pressed?};
+        \node[block, below of=uart, node distance=3cm] (mvmario) {Move Mario};
+        \node[block, below of=mvmario] (display2) {Update display};
+        \node[block, below of=display2] (start2) {Start timers};
+        \node[decision, right of=uart, node distance=4cm] (button) {Push button pressed?};
+        \node[block, below of=button, node distance=3cm] (clear) {Clear interrupt};
+        \node[block, below of=clear] (pause) {Process pause};
+        \node[block, below of=pause] (display3) {Update Display};
+        \node[right of=origin, node distance=6cm] (empty) {};
+        \node[cloud, below of=empty, node distance=15cm] (stop) {Stop};
+        \node[block, right of=clear, node distance=3cm] (start3) {Start timers};
+        \path[line] (origin) -- (stopt);
+        \path[line] (stopt) -- (timer0);
+        \path[line] (timer0) -- node[near start] {yes} (reset0);
+        \path[line] (reset0) -- (mvbarrels);
+        \path[line] (mvbarrels) -- (fall);
+        \path[line] (fall) -- (display0);
+        \path[line] (display0) -- (start0);
+        \path[line] (timer1) -- node[near start] {yes} (reset1);
+        \path[line] (reset1) -- (mkbarrel);
+        \path[line] (mkbarrel) -- (display1);
+        \path[line] (display1) -- (start1);
+        \path[line] (uart) -- node[near start] {yes} (mvmario);
+        \path[line] (mvmario) -- (display2);
+        \path[line] (display2) -- (start2);
+        \path[line] (button) -- node[near start] {yes} (clear);
+        \path[line] (clear) -- (pause);
+        \path[line] (pause) -- (display3);
+        \path[line] (start0) -- (stop);
+        \path[line] (start1) -- (stop);
+        \path[line] (start2) -- (stop);
+        \path[line] (display3) -- (stop);
+        \path[line] (timer0) -- node[near start] {no} (timer1);
+        \path[line] (timer1) -- node[near start] {no} (uart);
+        \path[line] (uart) -- node[near start] {no} (button);
+        \path[line] (button) -| node[near start] {no} (start3);
+        \path[line] (start3) -- +(0,-6) -- (stop);
+    \end{tikzpicture}
+\end{center}

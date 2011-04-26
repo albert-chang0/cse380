@@ -1,0 +1,21 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[decision] (collision) {Mario collide with barrel?};
+        \node[block, right of=collision, node distance=5cm] (die) {Lose a life};
+        \node[decision, below of=collision, node distance=4cm] (jump) {Did Mario jump over barrel?};
+        \node[block, right of=jump, node distance=5cm] (add) {Add to score};
+        \node[decision, below of=jump, node distance=4cm] (princess) {Did Mario reach princess?};
+        \node[block, right of=princess, node distance=5cm] (new) {Increment Level};
+        \path[line] (collision) -- node[near start] {yes} (die);
+        \path[line] (collision) -- node[near start] {no} (jump);
+        \path[line] (jump) -- node[near start] {yes} (add);
+        \path[line] (jump) -- node[near start] {no} (princess);
+        \path[line] (princess) -- node[near start] {yes} (new);
+        \path[line] (new) -- (add);
+        \draw (princess) -- node[near start] {no} +(0,-2.5) -| +(7,8);
+        \path[line, dashed] (princess) +(7,8) -- +(7,10.5);
+        \draw (die) -- +(2,0);
+        \draw (add) -- +(2,0);
+        \path[line, dashed] (collision) +(0,2.5) -- (collision);
+    \end{tikzpicture}
+\end{center}

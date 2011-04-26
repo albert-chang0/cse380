@@ -1,0 +1,18 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[decision, below of=origin] (all) {6th barrel?};
+        \node[cloud, right of=all, node distance=5cm] (stop) {Stop};
+        \node[block, below of=all, node distance=3cm] (parse) {Parse position};
+        \node[block, below of=parse] (restore) {Restore previous character};
+        \node[block, below of=restore] (del) {Delete barrel from RAM};
+        \node[block, below of=del] (next) {Fetch next barrel};
+        \path[line] (origin) -- (all);
+        \path[line] (all) -- node[near start] {yes} (stop);
+        \path[line] (all) -- node[near start] {no} (parse);
+        \path[line] (parse) -- (restore);
+        \path[line] (restore) -- (del);
+        \path[line] (del) -- (next);
+        \path[line] (next) -- +(-3,0) |- (all);
+    \end{tikzpicture}
+\end{center}

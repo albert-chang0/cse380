@@ -1,0 +1,20 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (add) {Add numerical score};
+        \node[block, below of=add] (cap) {Cap score to what's displayable};
+        \node[block, below of=cap] (store) {Save thousands place};
+        \node[block, below of=store] (display) {Update output buffer};
+        \node[decision, below of=display] (detect) {Did 1000s place change?};
+        \node[block, below of=detect, node distance=3cm] (life) {Add a life};
+        \node[cloud, below of=life] (stop) {Stop};
+        \path[line] (origin) -- (add);
+        \path[line] (add) -- (cap);
+        \path[line] (cap) -- (store);
+        \path[line] (store) -- (display);
+        \path[line] (display) -- (detect);
+        \path[line] (detect) -- node[near start] {yes} (life);
+        \path[line] (life) -- (stop);
+        \path[line] (detect) -- node[near start] {no} +(-3,0) |- (stop);
+    \end{tikzpicture}
+\end{center}

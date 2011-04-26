@@ -1,0 +1,31 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (read) {Get keyboard input};
+        \node[block, below of=read] (parse) {Parse position};
+        \node[decision, below of=parse] (movable) {Can Mario move?};
+        \node[cloud, right of=movable, node distance=7cm] (stop) {Stop};
+        \node[block, below of=movable, node distance=3cm] (mid) {Is Mario mid-jump?};
+        \node[block, below of=mid] (context) {Contextualize};
+        \node[decision, below of=context] (match) {valid move based on context?};
+        \node[block, below of=match, node distance=3cm] (restore) {Restore previous character};
+        \node[block, below of=restore] (move) {Move Mario};
+        \node[block, below of=move] (save) {Save previous character};
+        \node[block, below of=save] (update) {Update output buffer};
+        \path[line] (origin) -- (read);
+        \path[line] (read) -- (parse);
+        \path[line] (parse) -- (movable);
+        \path[line] (movable) -- node[near start] {no} (stop);
+        \path[line] (movable) -- node[near start] {yes} (mid);
+        \path[line] (mid) -- (context);
+        \path[line] (context) -- (match);
+        \path[line] (match) -- node[near start] {yes} (restore);
+        \path[line] (restore) -- (move);
+        \path[line] (move) -- (save);
+        \path[line] (save) -- (update);
+        \path[line, dashed] (update) +(0,-2.5) -- (update);
+        \draw[dashed] (update) +(7,-2.5) -- +(7,0);
+        \path[line] (update) +(7,0) -- (stop);
+        \draw (match) -- node[near start] {no} +(7,0);
+    \end{tikzpicture}
+\end{center}

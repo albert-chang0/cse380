@@ -1,0 +1,13 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[mlblock, below of=origin] (ram) {Seek first available space in RAM allocated to the barrels};
+        \node[block, below of=ram, node distance=2cm] (create) {Add barrel in RAM};
+        \node[block, below of=create] (draw) {Update display buffer};
+        \node[cloud, below of=draw] (stop) {Stop};
+        \path[line] (origin) -- (ram);
+        \path[line] (ram) -- (create);
+        \path[line] (create) -- (draw);
+        \path[line] (draw) -- (stop);
+    \end{tikzpicture}
+\end{center}

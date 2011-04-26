@@ -1,0 +1,19 @@
+\begin{center}
+    \begin{tikzpicture}[node distance=1.5cm, auto]
+        \node[cloud] (origin) {Start};
+        \node[block, below of=origin] (fiq) {Classify as FIQs};
+        \node[block, below of=fiq] (enable) {Enable UART0, TIMER0, TIMER1, and EINT1 interrupts};
+        \node[block, below of=enable] (uart) {UART0 interrupt on RX};
+        \node[block, below of=uart] (timers) {Setup TIMER interrupts};
+        \node[block, below of=timers] (eint) {EINT1 interrupts on edge};
+        \node[block, below of=eint] (cpsr) {Enable fast interrupts on CPSR};
+        \node[cloud, below of=cpsr] (stop) {Stop};
+        \path[line] (origin) -- (fiq);
+        \path[line] (fiq) -- (enable);
+        \path[line] (enable) -- (uart);
+        \path[line] (uart) -- (timers);
+        \path[line] (timers) -- (eint);
+        \path[line] (eint) -- (cpsr);
+        \path[line] (cpsr) -- (stop);
+    \end{tikzpicture}
+\end{center}
